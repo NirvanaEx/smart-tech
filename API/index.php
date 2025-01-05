@@ -1,0 +1,136 @@
+<?php
+
+require_once __DIR__ . '/routes/users.php';
+require_once __DIR__ . '/routes/category.php';
+require_once __DIR__ . '/routes/subcategory.php';
+require_once __DIR__ . '/routes/products.php';
+
+require_once __DIR__ . '/helpers/Response.php';
+
+// Получение данных из входящего запроса
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+$path = explode('/', trim($_SERVER['REQUEST_URI'], '/'));
+$resource = $path[1] ?? null; // Пример: /users или /categories
+$id = $path[2] ?? null; // Пример: /users/1 или /categories/2
+
+header('Content-Type: application/json');
+
+// Обработка маршрутов
+if ($resource === 'users') {
+    switch ($requestMethod) {
+        case 'GET':
+            if ($id) {
+                Response::send(400, "Fetching a single user is not implemented yet");
+            } else {
+                getUsers();
+            }
+            break;
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addUser($data);
+            break;
+        case 'PUT':
+            if (!$id) {
+                Response::send(400, "User ID is required for update");
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+            updateUser($id, $data);
+            break;
+        default:
+            Response::send(405, "Method not allowed");
+    }
+} elseif ($resource === 'categories') {
+    switch ($requestMethod) {
+        case 'GET':
+            if ($id) {
+                Response::send(400, "Fetching a single category is not implemented yet");
+            } else {
+                getCategories();
+            }
+            break;
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addCategory($data);
+            break;
+        case 'PUT':
+            if (!$id) {
+                Response::send(400, "Category ID is required for update");
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+            updateCategory($id, $data);
+            break;
+        case 'DELETE':
+            if (!$id) {
+                Response::send(400, "Category ID is required for deletion");
+            }
+            deleteCategory($id);
+            break;
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
+if ($resource === 'subcategories') {
+    switch ($requestMethod) {
+        case 'GET':
+            if ($id) {
+                Response::send(400, "Fetching a single subcategory is not implemented yet");
+            } else {
+                getSubcategories();
+            }
+            break;
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addSubcategory($data);
+            break;
+        case 'PUT':
+            if (!$id) {
+                Response::send(400, "Subcategory ID is required for update");
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+            updateSubcategory($id, $data);
+            break;
+        case 'DELETE':
+            if (!$id) {
+                Response::send(400, "Subcategory ID is required for deletion");
+            }
+            deleteSubcategory($id);
+            break;
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
+else if ($resource === 'products') {
+    switch ($requestMethod) {
+        case 'GET':
+            if (isset($_GET['query'])) {
+                searchProducts($_GET['query']);
+            } else {
+                $start = $_GET['start'] ?? 0;
+                $limit = $_GET['limit'] ?? 10;
+                getProducts($start, $limit);
+            }
+            break;
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addProduct($data);
+            break;
+        case 'PUT':
+            if (!$id) {
+                Response::send(400, "Product ID is required for update");
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+            updateProduct($id, $data);
+            break;
+        case 'DELETE':
+            if (!$id) {
+                Response::send(400, "Product ID is required for deletion");
+            }
+            deleteProduct($id);
+            break;
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
+else {
+    Response::send(404, "Resource not found");
+}

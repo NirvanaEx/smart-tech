@@ -13,7 +13,10 @@
             <th>Description</th>
             <th>Quantity</th>
             <th>Status</th>
+            <th>Category</th>
             <th>Subcategory</th>
+            <th>Price</th>
+            <th>Image</th>
             <th>Actions</th>
         </tr>
         </thead>

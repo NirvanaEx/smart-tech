@@ -103,31 +103,34 @@ else if ($resource === 'products') {
     switch ($requestMethod) {
         case 'GET':
             if (isset($_GET['query'])) {
+                // Если передан параметр поиска
                 searchProducts($_GET['query']);
+            } else if (isset($id)) {
+                // Получение товара по ID
+                getProductById($id);
             } else {
-                $start = $_GET['start'] ?? 0;
-                $limit = $_GET['limit'] ?? 10;
-                getProducts($start, $limit);
+                // Получение полного списка товаров
+                getProducts();
             }
             break;
         case 'POST':
-            $data = json_decode(file_get_contents('php://input'), true);
-            addProduct($data);
-            break;
-        case 'PUT':
-            if (!$id) {
-                Response::send(400, "Product ID is required for update");
+            // Проверяем, есть ли ID
+            if (isset($id)) {
+                updateProduct($id, $_POST); // Передаем данные из $_POST
+            } else {
+                addProduct(); // Если ID нет, это добавление
             }
-            $data = json_decode(file_get_contents('php://input'), true);
-            updateProduct($id, $data);
             break;
+
         case 'DELETE':
+            // Удаление товара
             if (!$id) {
                 Response::send(400, "Product ID is required for deletion");
             }
             deleteProduct($id);
             break;
         default:
+            // Метод не разрешён
             Response::send(405, "Method not allowed");
     }
 }

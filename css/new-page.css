@@ -1,0 +1,28 @@
+/* Общие стили для раздела "Новинки" */
+.swiper {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto; /* Центрирование */
+}
+
+.swiper-slide img {
+    width: 100%;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.swiper-button-prev,
+.swiper-button-next {
+    color: #ffffff;
+}
+
+.swiper-pagination-bullet {
+    background: #d3d3d3;
+    opacity: 0.8;
+}
+
+.swiper-pagination-bullet-active {
+    background: #ffffff;
+    opacity: 1;
+}

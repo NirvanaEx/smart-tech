@@ -1,0 +1,10 @@
+.btn-favorite.active {
+    color: red; /* Красный цвет для активного сердечка */
+}
+
+#cart-count {
+    display: none; /* Скрываем метку по умолчанию */
+    font-size: 0.75rem;
+    padding: 0.5em;
+    transform: translate(-50%, -50%);
+}

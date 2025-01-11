@@ -4,6 +4,8 @@ require_once __DIR__ . '/routes/users.php';
 require_once __DIR__ . '/routes/category.php';
 require_once __DIR__ . '/routes/subcategory.php';
 require_once __DIR__ . '/routes/products.php';
+require_once __DIR__ . '/routes/cart.php';
+
 
 require_once __DIR__ . '/helpers/Response.php';
 
@@ -105,7 +107,7 @@ else if ($resource === 'products') {
             if (isset($_GET['query'])) {
                 // Если передан параметр поиска
                 searchProducts($_GET['query']);
-            } else if (isset($id)) {
+            } elseif (!empty($id)) {
                 // Получение товара по ID
                 getProductById($id);
             } else {
@@ -113,27 +115,60 @@ else if ($resource === 'products') {
                 getProducts();
             }
             break;
+
         case 'POST':
-            // Проверяем, есть ли ID
-            if (isset($id)) {
-                updateProduct($id, $_POST); // Передаем данные из $_POST
+            if (!empty($id)) {
+                updateProduct($id, $_POST); // Обновление товара
             } else {
-                addProduct(); // Если ID нет, это добавление
+                addProduct(); // Добавление нового товара
             }
             break;
 
         case 'DELETE':
-            // Удаление товара
-            if (!$id) {
+            if (empty($id)) {
                 Response::send(400, "Product ID is required for deletion");
             }
             deleteProduct($id);
             break;
+
         default:
-            // Метод не разрешён
             Response::send(405, "Method not allowed");
     }
 }
+else if ($resource === 'cart') {
+    switch ($requestMethod) {
+        case 'GET':
+            if (!$id) {
+                Response::send(400, "User ID is required");
+            }
+            getCart($id);
+            break;
+
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addToCart($data);
+            break;
+
+        case 'PUT':
+            if (!$id) {
+                Response::send(400, "Cart item ID is required for update");
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+            updateCartItem($id, $data);
+            break;
+
+        case 'DELETE':
+            if (!$id) {
+                Response::send(400, "Cart item ID is required for deletion");
+            }
+            deleteCartItem($id);
+            break;
+
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
+
 else {
     Response::send(404, "Resource not found");
 }

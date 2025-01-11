@@ -28,6 +28,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script>
+    function markFavorites() {
+        $('#products-container .btn-favorite').each(function () {
+            const productId = parseInt($(this).data('product-id'));
+            if (isFavorite(productId)) {
+                $(this).addClass('active').css('color', 'red'); // Отмечаем как избранное
+            } else {
+                $(this).removeClass('active').css('color', ''); // Сбрасываем состояние
+            }
+        });
+    }
+
     $(document).ready(function () {
         const productStock = {}; // Хранение доступного количества товара по ID
 
@@ -49,39 +60,38 @@
                     const products = response.data;
                     productsContainer.empty(); // Очищаем контейнер
 
-                    // Сохраняем доступное количество товара
                     products.forEach(product => {
-                        productStock[product.id] = product.quantity;
-
-                        // Генерация карточек товаров
                         const card = `
-                        <div class="col-12 col-sm-6 col-md-6 col-lg-4">
-                            <div class="card bg-dark text-light h-100">
-                                <img src="${product.image_url}" class="card-img-top" alt="${product.product_name}">
-                                <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title">${product.product_name}</h5>
-                                    <p class="card-text">${product.description}</p>
-                                    <p class="card-text"><strong>Цена:</strong> ${product.price} ₽</p>
-                                   <div class="mt-auto d-flex align-items-center cart-controls-container">
-                                    <div class="cart-controls" data-product-id="${product.id}">
-                                        <button class="btn btn-outline-light add-to-cart-btn w-100" data-product-id="${product.id}">
-                                            <i class="fas fa-shopping-bag"></i> В корзину
-                                        </button>
-                                    </div>
-                                    <div class="d-flex">
-                                        <button class="btn btn-outline-light btn-favorite" data-product-id="${product.id}">
-                                            <i class="fas fa-heart"></i>
-                                        </button>
-                                        <button class="btn btn-outline-light btn-compare" data-product-id="${product.id}">
-                                            <i class="fas fa-exchange-alt"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                <div class="col-12 col-sm-6 col-md-6 col-lg-3">
+                    <div class="card bg-dark text-light h-100">
+                        <img src="${product.image_url}" class="card-img-top" alt="${product.product_name}">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">${product.product_name}</h5>
+                            <p class="card-text">${product.description}</p>
+                            <p class="card-text"><strong>Цена:</strong> ${product.price} ₽</p>
+                           <div class="mt-auto d-flex align-items-center cart-controls-container">
+                            <div class="cart-controls" data-product-id="${product.id}">
+                                <button class="btn btn-outline-light add-to-cart-btn w-100" data-product-id="${product.id}">
+                                    <i class="fas fa-shopping-bag"></i> В корзину
+                                </button>
+                            </div>
+                            <div class="d-flex">
+                                <button class="btn btn-outline-light btn-favorite" data-product-id="${product.id}">
+                                    <i class="fas fa-heart"></i>
+                                </button>
+                                <button class="btn btn-outline-light btn-compare" data-product-id="${product.id}">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </button>
                             </div>
                         </div>
-                    `;
+                    </div>
+                </div>
+            `;
                         productsContainer.append(card);
                     });
+
+                    // Отмечаем избранные товары
+                    markFavorites();
                 },
                 error: function (xhr, status, error) {
                     productsContainer.html(`<div class="text-danger text-center">Ошибка: ${xhr.status} - ${error}</div>`);
@@ -89,23 +99,41 @@
             });
         }
 
-        // Делегирование событий для кнопки "Избранное"
         $('#products-container').on('click', '.btn-favorite', function (e) {
             const button = $(this);
+            const productId = parseInt(button.data('product-id'));
+            const productName = button.closest('.card-body').find('.card-title').text().trim();
+            const productPrice = parseFloat(button.closest('.card-body').find('.card-text strong').text().replace(/[^\d.]/g, ''));
+
+            if (button.hasClass('active')) {
+                // Если товар уже в избранном, удаляем его
+                removeFromFavorites(productId);
+                Swal.fire({
+                    icon: "info",
+                    title: "Удалено из избранного",
+                    text: `${productName} удалён из избранного.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
+                // Если товара нет в избранном, добавляем его
+                addToFavorites({
+                    id: productId,
+                    name: productName,
+                    price: productPrice
+                });
+                Swal.fire({
+                    icon: "success",
+                    title: "Добавлено в избранное",
+                    text: `${productName} добавлен в избранное.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
 
             // Переключение класса "active" для кнопки
             button.toggleClass('active');
-
-            // Изменение внешнего вида в зависимости от состояния
-            if (button.hasClass('active')) {
-                button.css('color', 'red'); // Красим кнопку в красный цвет
-            } else {
-                button.css('color', ''); // Возвращаем цвет по умолчанию
-            }
-
-            // Дополнительно можно обработать добавление в "Избранное" на сервере
-            const productId = button.data('product-id');
-            console.log(`Product ${productId} added to favorites.`);
+            button.css('color', button.hasClass('active') ? 'red' : '');
         });
 
         // Делегирование событий для кнопок "+" (увеличение количества)

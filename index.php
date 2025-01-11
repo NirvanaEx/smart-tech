@@ -137,7 +137,7 @@
                 </select>
             </div>
 
-            <button class="btn btn-outline-light position-relative" onclick="showCart()">
+            <button id="cartButton" class="btn btn-outline-light position-relative">
                 <i class="fas fa-shopping-cart"></i> Корзина
                 <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                     0
@@ -148,7 +148,12 @@
                 <i class="fas fa-heart"></i> Избранное
             </button>
             <button class="btn btn-outline-light"><i class="fas fa-exchange-alt"></i> Сравнить</button>
-            <button class="btn btn-outline-light"><i class="fas fa-sign-in-alt"></i> Войти</button>
+            <!-- Кнопка "Войти" -->
+            <div id="auth-container">
+                <button id="loginButton" class="btn btn-outline-light">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </button>
+            </div>
         </nav>
     </div>
 </header>
@@ -192,79 +197,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+<script type="module" src="js/part-index-auth.js"></script>
+<script type="module" src="js/part-index-cart.js"></script>
+
 <script>
 
-    function showCart() {
-        // Создание HTML для отображения корзины
-        let cartHTML = '<table class="table table-dark table-striped">';
-        cartHTML += '<thead><tr><th>Изображение</th><th>Название</th><th>Цена</th><th>Количество</th><th>Действия</th></tr></thead>';
-        cartHTML += '<tbody>';
 
-        let total = 0;
-
-        if (cart.length > 0) {
-            cart.forEach(product => {
-                cartHTML += `<tr>
-                    <td><img src="${product.image}" alt="${product.name}" style="height: 50px;"></td>
-                    <td>${product.name}</td>
-                    <td>${product.price} ₽</td>
-                    <td>${product.quantity}</td>
-                    <td>
-                        <button class="btn btn-sm btn-success" onclick="addToCart({ id: '${product.id}', name: '${product.name}', price: ${product.price}, image: '${product.image}' })">+</button>
-                        <button class="btn btn-sm btn-danger" onclick="removeFromCart('${product.id}')">-</button>
-                    </td>
-                </tr>`;
-
-                total += product.price * product.quantity;
-            });
-        } else {
-            cartHTML += '<tr><td colspan="5" class="text-center">Корзина пуста</td></tr>';
-        }
-
-        cartHTML += '</tbody></table>';
-        cartHTML += `<div class="text-end fw-bold">Итого: ${total} ₽</div>`;
-
-        // Открытие SweetAlert окна
-        Swal.fire({
-            title: 'Корзина',
-            html: cartHTML,
-            showCancelButton: true,
-            confirmButtonText: 'Оформить заказ',
-            cancelButtonText: 'Закрыть',
-            showDenyButton: true,
-            denyButtonText: 'Очистить корзину',
-            customClass: {
-                popup: 'bg-dark text-light'
-            },
-            preConfirm: () => {
-                if (cart.length === 0) {
-                    Swal.fire('Корзина пуста', '', 'warning');
-                    return false;
-                }
-                return true;
-            }
-        }).then(result => {
-            if (result.isConfirmed) {
-                processOrder();
-            } else if (result.isDenied) {
-                clearCart();
-            }
-        });
-    }
-
-    // Функция для обработки заказа
-    function processOrder() {
-        // Пример обработки заказа
-        Swal.fire('Заказ оформлен!', '', 'success');
-        clearCart();
-    }
-
-    // Функция для очистки корзины
-    function clearCart() {
-        cart.length = 0;
-        updateCartCount();
-        Swal.fire('Корзина очищена!', '', 'success');
-    }
 
     // Глобальный массив для избранных товаров
     const favorites = [];

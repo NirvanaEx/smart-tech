@@ -9,11 +9,25 @@ function getCart($user_id)
     $pdo = getDatabaseConnection();
 
     try {
-        $stmt = $pdo->prepare("SELECT c.id, c.product_id, c.quantity, p.name AS product_name, p.description, p.image_path, pp.price
-                               FROM cart c
-                               JOIN products p ON c.product_id = p.id
-                               LEFT JOIN product_price pp ON p.id = pp.product_id
-                               WHERE c.user_id = :user_id");
+        $stmt = $pdo->prepare("
+            SELECT 
+                c.id, 
+                c.product_id, 
+                c.quantity, 
+                p.name AS product_name, 
+                p.description, 
+                p.image_path, 
+                (
+                    SELECT pp.price 
+                    FROM product_price pp 
+                    WHERE pp.product_id = p.id 
+                    ORDER BY pp.updated_at DESC 
+                    LIMIT 1
+                ) AS price
+            FROM cart c
+            JOIN products p ON c.product_id = p.id
+            WHERE c.user_id = :user_id
+        ");
         $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
         $stmt->execute();
 
@@ -60,7 +74,6 @@ function addToCart($data)
         Response::send(500, "Error adding product to cart: " . $e->getMessage());
     }
 }
-
 // Обновление количества продукта в корзине
 function updateCartItem($id, $data)
 {
@@ -68,30 +81,39 @@ function updateCartItem($id, $data)
 
     $quantity = $data['quantity'] ?? null;
 
-    if (!$quantity || $quantity <= 0) {
-        Response::send(400, "Quantity must be greater than 0");
+    if ($quantity === null) {
+        Response::send(400, "Quantity must be provided");
         return;
     }
 
     try {
-        $stmt = $pdo->prepare("UPDATE cart SET quantity = :quantity, updated_at = NOW() WHERE id = :id");
-        $stmt->execute([':quantity' => $quantity, ':id' => $id]);
-        Response::send(200, "Cart item updated successfully");
+        if ($quantity <= 0) {
+            // Удаляем запись, если количество равно 0
+            $stmt = $pdo->prepare("DELETE FROM cart WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+            Response::send(200, "Cart item deleted successfully due to quantity = 0");
+        } else {
+            // Обновляем количество
+            $stmt = $pdo->prepare("UPDATE cart SET quantity = :quantity, updated_at = NOW() WHERE id = :id");
+            $stmt->execute([':quantity' => $quantity, ':id' => $id]);
+            Response::send(200, "Cart item updated successfully");
+        }
     } catch (PDOException $e) {
         Response::send(500, "Error updating cart item: " . $e->getMessage());
     }
 }
 
-// Удаление продукта из корзины
-function deleteCartItem($id)
+// Удаление всех продуктов из корзины для указанного пользователя
+function deleteCartItem($user_id)
 {
     $pdo = getDatabaseConnection();
 
     try {
-        $stmt = $pdo->prepare("DELETE FROM cart WHERE id = :id");
-        $stmt->execute([':id' => $id]);
-        Response::send(200, "Cart item deleted successfully");
+        // Удаляем все записи для данного user_id
+        $stmt = $pdo->prepare("DELETE FROM cart WHERE user_id = :user_id");
+        $stmt->execute([':user_id' => $user_id]);
+        Response::send(200, "All cart items deleted successfully");
     } catch (PDOException $e) {
-        Response::send(500, "Error deleting cart item: " . $e->getMessage());
+        Response::send(500, "Error deleting cart items: " . $e->getMessage());
     }
 }

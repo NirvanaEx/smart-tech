@@ -55,6 +55,8 @@ elseif ($resource === 'auth') {
                     registerUser($data);
                 } elseif ($data['action'] === 'login') {
                     loginUser($data);
+                } elseif ($data['action'] === 'full_data') {
+                    getUserData($data);
                 } else {
                     Response::send(400, "Invalid action");
                 }
@@ -63,11 +65,19 @@ elseif ($resource === 'auth') {
             }
             break;
 
+        case 'PUT': // Добавляем PUT для обновления данных
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (isset($data['action']) && $data['action'] === 'update') {
+                updateUserData($data);
+            } else {
+                Response::send(400, "Invalid or missing action");
+            }
+            break;
+
         default:
             Response::send(405, "Method not allowed");
     }
 }
-
 elseif ($resource === 'categories') {
     switch ($requestMethod) {
         case 'GET':

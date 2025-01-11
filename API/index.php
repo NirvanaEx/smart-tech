@@ -5,6 +5,8 @@ require_once __DIR__ . '/routes/category.php';
 require_once __DIR__ . '/routes/subcategory.php';
 require_once __DIR__ . '/routes/products.php';
 require_once __DIR__ . '/routes/cart.php';
+require_once __DIR__ . '/routes/favorite-products.php';
+
 
 
 require_once __DIR__ . '/helpers/Response.php';
@@ -168,7 +170,31 @@ else if ($resource === 'cart') {
             Response::send(405, "Method not allowed");
     }
 }
+else if ($resource === 'favorite-products') {
+    switch ($requestMethod) {
+        case 'GET':
+            if (!$id) {
+                Response::send(400, "User ID is required");
+            }
+            getFavoriteProducts($id);
+            break;
 
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addFavoriteProduct($data);
+            break;
+
+        case 'DELETE':
+            if (!$id) {
+                Response::send(400, "Favorite product ID is required for deletion");
+            }
+            deleteFavoriteProduct($id);
+            break;
+
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
 else {
     Response::send(404, "Resource not found");
 }

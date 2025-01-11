@@ -6,6 +6,8 @@ require_once __DIR__ . '/routes/subcategory.php';
 require_once __DIR__ . '/routes/products.php';
 require_once __DIR__ . '/routes/cart.php';
 require_once __DIR__ . '/routes/favorite-products.php';
+require_once __DIR__ . '/routes/auth.php';
+
 
 
 
@@ -43,7 +45,30 @@ if ($resource === 'users') {
         default:
             Response::send(405, "Method not allowed");
     }
-} elseif ($resource === 'categories') {
+}
+elseif ($resource === 'auth') {
+    switch ($requestMethod) {
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (isset($data['action'])) {
+                if ($data['action'] === 'register') {
+                    registerUser($data);
+                } elseif ($data['action'] === 'login') {
+                    loginUser($data);
+                } else {
+                    Response::send(400, "Invalid action");
+                }
+            } else {
+                Response::send(400, "Action is required");
+            }
+            break;
+
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
+
+elseif ($resource === 'categories') {
     switch ($requestMethod) {
         case 'GET':
             if ($id) {
@@ -73,7 +98,7 @@ if ($resource === 'users') {
             Response::send(405, "Method not allowed");
     }
 }
-if ($resource === 'subcategories') {
+elseif ($resource === 'subcategories') {
     switch ($requestMethod) {
         case 'GET':
             if ($id) {
@@ -103,7 +128,7 @@ if ($resource === 'subcategories') {
             Response::send(405, "Method not allowed");
     }
 }
-else if ($resource === 'products') {
+elseif ($resource === 'products') {
     switch ($requestMethod) {
         case 'GET':
             if (isset($_GET['query'])) {
@@ -137,7 +162,7 @@ else if ($resource === 'products') {
             Response::send(405, "Method not allowed");
     }
 }
-else if ($resource === 'cart') {
+elseif ($resource === 'cart') {
     switch ($requestMethod) {
         case 'GET':
             if (!$id) {
@@ -170,7 +195,7 @@ else if ($resource === 'cart') {
             Response::send(405, "Method not allowed");
     }
 }
-else if ($resource === 'favorite-products') {
+elseif ($resource === 'favorite-products') {
     switch ($requestMethod) {
         case 'GET':
             if (!$id) {

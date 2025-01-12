@@ -47,9 +47,6 @@
             padding: 20px;
         }
 
-        .table {
-            background-color: #ffffff;
-        }
 
 
 
@@ -64,7 +61,9 @@
             <a href="#" class="menu-item active" data-page="category"><i class="fas fa-folder"></i> Categories</a>
             <a href="#" class="menu-item" data-page="subcategory"><i class="fas fa-folder-open"></i> Subcategories</a>
             <a href="#" class="menu-item" data-page="products"><i class="fas fa-box"></i> Products</a>
+            <a href="#" class="menu-item" data-page="orders"><i class="fas fa-clipboard-list"></i> Orders</a>
         </div>
+
         <!-- Main Content -->
         <div class="col-md-9 col-lg-10 content">
             <div id="content">
@@ -80,6 +79,7 @@
 <!-- SweetAlert -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+
     // General JS
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', function (e) {

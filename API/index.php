@@ -7,6 +7,8 @@ require_once __DIR__ . '/routes/products.php';
 require_once __DIR__ . '/routes/cart.php';
 require_once __DIR__ . '/routes/favorite-products.php';
 require_once __DIR__ . '/routes/auth.php';
+require_once __DIR__ . '/routes/orders.php';
+
 
 
 
@@ -226,6 +228,36 @@ elseif ($resource === 'favorite-products') {
             deleteFavoriteProduct($id);
             break;
 
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
+elseif ($resource === 'orders') {
+    switch ($requestMethod) {
+        case 'GET':
+            if ($id) {
+                getOrderById($id);
+            } else {
+                getOrders();
+            }
+            break;
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addOrder($data);
+            break;
+        case 'PUT':
+            if (!$id) {
+                Response::send(400, "Order ID is required for update");
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+            updateOrder($id, $data);
+            break;
+        case 'DELETE':
+            if (!$id) {
+                Response::send(400, "Order ID is required for deletion");
+            }
+            deleteOrder($id);
+            break;
         default:
             Response::send(405, "Method not allowed");
     }

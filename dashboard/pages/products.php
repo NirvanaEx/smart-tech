@@ -28,6 +28,9 @@
 
 <script>
 
+    // Add event listener for "Add Product" button
+    document.getElementById('addProductBtn')?.addEventListener('click', addProduct);
+
     // Fetch products
     function fetchProducts() {
         fetch('http://smart-tech/API/products')
@@ -72,113 +75,106 @@
     }
 
 
+    // Add product
+    function addProduct() {
+        fetch('http://smart-tech/API/subcategories')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 200) {
+                    Swal.fire('Error', 'Failed to load subcategories for product creation', 'error');
+                    return;
+                }
 
+                const subcategoryOptions = data.data.map(
+                    subcategory => `<option value="${subcategory.id}">${subcategory.subcategory_name}</option>`
+                ).join('');
 
-        // Add product
-        function addProduct() {
-            fetch('http://smart-tech/API/subcategories')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status !== 200) {
-                        Swal.fire('Error', 'Failed to load subcategories for product creation', 'error');
-                        return;
+                Swal.fire({
+                    title: 'Add New Product',
+                    html: `
+                        <form id="addProductForm" style="text-align: left;">
+                            <label for="subcategoryId" style="display: block; margin-bottom: 5px;">Subcategory</label>
+                            <select id="subcategoryId" class="form-control" style="width: 100%; margin-bottom: 10px;">
+                                <option value="" disabled selected>Select Subcategory</option>
+                                ${subcategoryOptions}
+                            </select>
+                            <label for="productName" style="display: block; margin-bottom: 5px;">Product Name</label>
+                            <input type="text" id="productName" class="form-control" placeholder="Product Name" style="width: 100%; margin-bottom: 10px;">
+                            <label for="productDescription" style="display: block; margin-bottom: 5px;">Description</label>
+                            <textarea id="productDescription" class="form-control" placeholder="Product Description" style="width: 100%; margin-bottom: 10px;"></textarea>
+                            <label for="productQuantity" style="display: block; margin-bottom: 5px;">Quantity</label>
+                            <input type="number" id="productQuantity" class="form-control" placeholder="Quantity" style="width: 100%; margin-bottom: 10px;">
+                            <label for="productPrice" style="display: block; margin-bottom: 5px;">Price</label>
+                            <input type="number" id="productPrice" class="form-control" placeholder="Price" style="width: 100%; margin-bottom: 10px;">
+                            <label for="productImage" style="display: block; margin-bottom: 5px;">Image</label>
+                            <input type="file" id="productImage" class="form-control" accept=".jpg, .png" style="width: 100%;">
+                        </form>
+                    `,
+                    confirmButtonText: 'Add',
+                    preConfirm: () => {
+                        const subcategoryId = document.getElementById('subcategoryId').value;
+                        const name = document.getElementById('productName').value;
+                        const description = document.getElementById('productDescription').value;
+                        const quantity = document.getElementById('productQuantity').value;
+                        const price = document.getElementById('productPrice').value;
+                        const imageFile = document.getElementById('productImage').files[0];
+
+                        // Validate fields
+                        if (!subcategoryId || !name || !description || !quantity || !price || !imageFile) {
+                            Swal.showValidationMessage('All fields are required');
+                            return false;
+                        }
+
+                        // Validate image file
+                        const validFormats = ['image/jpeg', 'image/png'];
+                        if (!validFormats.includes(imageFile.type)) {
+                            Swal.showValidationMessage('Only .jpg and .png files are allowed');
+                            return false;
+                        }
+                        if (imageFile.size > 1 * 1024 * 1024) {
+                            Swal.showValidationMessage('File size must not exceed 1 MB');
+                            return false;
+                        }
+
+                        // Create FormData object
+                        const formData = new FormData();
+                        formData.append('subcategory_id', subcategoryId);
+                        formData.append('name', name);
+                        formData.append('description', description);
+                        formData.append('quantity', quantity);
+                        formData.append('price', price);
+                        formData.append('image', imageFile);
+
+                        return formData;
                     }
-
-                    const subcategoryOptions = data.data.map(
-                        subcategory => `<option value="${subcategory.id}">${subcategory.subcategory_name}</option>`
-                    ).join('');
-
-                    Swal.fire({
-                        title: 'Add New Product',
-                        html: `
-                            <form id="addProductForm" style="text-align: left;">
-                                <label for="subcategoryId" style="display: block; margin-bottom: 5px;">Subcategory</label>
-                                <select id="subcategoryId" class="form-control" style="width: 100%; margin-bottom: 10px;">
-                                    <option value="" disabled selected>Select Subcategory</option>
-                                    ${subcategoryOptions}
-                                </select>
-                                <label for="productName" style="display: block; margin-bottom: 5px;">Product Name</label>
-                                <input type="text" id="productName" class="form-control" placeholder="Product Name" style="width: 100%; margin-bottom: 10px;">
-                                <label for="productDescription" style="display: block; margin-bottom: 5px;">Description</label>
-                                <textarea id="productDescription" class="form-control" placeholder="Product Description" style="width: 100%; margin-bottom: 10px;"></textarea>
-                                <label for="productQuantity" style="display: block; margin-bottom: 5px;">Quantity</label>
-                                <input type="number" id="productQuantity" class="form-control" placeholder="Quantity" style="width: 100%; margin-bottom: 10px;">
-                                <label for="productPrice" style="display: block; margin-bottom: 5px;">Price</label>
-                                <input type="number" id="productPrice" class="form-control" placeholder="Price" style="width: 100%; margin-bottom: 10px;">
-                                <label for="productImage" style="display: block; margin-bottom: 5px;">Image</label>
-                                <input type="file" id="productImage" class="form-control" accept=".jpg, .png" style="width: 100%;">
-                            </form>
-                        `,
-                        confirmButtonText: 'Add',
-                        preConfirm: () => {
-                            const subcategoryId = document.getElementById('subcategoryId').value;
-                            const name = document.getElementById('productName').value;
-                            const description = document.getElementById('productDescription').value;
-                            const quantity = document.getElementById('productQuantity').value;
-                            const price = document.getElementById('productPrice').value;
-                            const imageFile = document.getElementById('productImage').files[0];
-
-                            // Validate fields
-                            if (!subcategoryId || !name || !description || !quantity || !price || !imageFile) {
-                                Swal.showValidationMessage('All fields are required');
-                                return false;
-                            }
-
-                            // Validate image file
-                            const validFormats = ['image/jpeg', 'image/png'];
-                            if (!validFormats.includes(imageFile.type)) {
-                                Swal.showValidationMessage('Only .jpg and .png files are allowed');
-                                return false;
-                            }
-                            if (imageFile.size > 1 * 1024 * 1024) {
-                                Swal.showValidationMessage('File size must not exceed 1 MB');
-                                return false;
-                            }
-
-                            // Create FormData object
-                            const formData = new FormData();
-                            formData.append('subcategory_id', subcategoryId);
-                            formData.append('name', name);
-                            formData.append('description', description);
-                            formData.append('quantity', quantity);
-                            formData.append('price', price);
-                            formData.append('image', imageFile);
-
-                            return formData;
-                        }
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            fetch('http://smart-tech/API/products', {
-                                method: 'POST',
-                                body: result.value // Send FormData
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        fetch('http://smart-tech/API/products', {
+                            method: 'POST',
+                            body: result.value // Send FormData
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 201) {
+                                    Swal.fire('Success', 'Product added successfully', 'success');
+                                    fetchProducts(); // Refresh products list
+                                } else {
+                                    Swal.fire('Error', data.message, 'error');
+                                }
                             })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.status === 201) {
-                                        Swal.fire('Success', 'Product added successfully', 'success');
-                                        fetchProducts(); // Refresh products list
-                                    } else {
-                                        Swal.fire('Error', data.message, 'error');
-                                    }
-                                })
-                                .catch(error => {
-                                    Swal.fire('Error', 'Failed to add product', 'error');
-                                });
-                        }
-                    });
-                })
-                .catch(error => {
-                    Swal.fire('Error', 'Failed to fetch subcategories', 'error');
+                            .catch(error => {
+                                Swal.fire('Error', 'Failed to add product', 'error');
+                            });
+                    }
                 });
-        }
+            })
+            .catch(error => {
+                Swal.fire('Error', 'Failed to fetch subcategories', 'error');
+            });
+    }
 
 
 
-        // Add event listener for "Add Product" button
-        const addProductBtn = document.getElementById('addProductBtn');
-        if (addProductBtn) {
-            addProductBtn.addEventListener('click', addProduct);
-        }
 
 
     // Delete product

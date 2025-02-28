@@ -8,6 +8,10 @@ function getCart($user_id)
 {
     $pdo = getDatabaseConnection();
 
+    // Получаем базовый путь для изображений из path.php
+    $paths = require __DIR__ . '/../config/path.php';
+    $baseImagePath = $paths['base_image_path'];
+
     try {
         $stmt = $pdo->prepare("
             SELECT 
@@ -16,7 +20,7 @@ function getCart($user_id)
                 c.quantity, 
                 p.name AS product_name, 
                 p.description, 
-                p.image_path, 
+                CONCAT(:base_image_path, p.image_path) AS image_path,
                 (
                     SELECT pp.price 
                     FROM product_price pp 
@@ -29,6 +33,7 @@ function getCart($user_id)
             WHERE c.user_id = :user_id
         ");
         $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+        $stmt->bindParam(':base_image_path', $baseImagePath, PDO::PARAM_STR);
         $stmt->execute();
 
         $cartItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -47,8 +52,8 @@ function addToCart($data)
     $product_id = $data['product_id'] ?? null;
     $quantity = $data['quantity'] ?? 1;
 
-    if (!$user_id || !$product_id) {
-        Response::send(400, "User ID and Product ID are required");
+    if (!$user_id || !$product_id || !is_numeric($product_id)) {
+        Response::send(400, "User ID and valid Product ID are required");
         return;
     }
 

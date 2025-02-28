@@ -101,6 +101,9 @@
         }
 
     </style>
+    <script>
+        const BASE_URL = 'http://smart-tech/API/';
+    </script>
 </head>
 <body class="bg-dark text-light">
 <!-- Header -->
@@ -121,19 +124,7 @@
                 </button>
                 <!-- Скрытый список категорий -->
                 <select id="categories" style="width: 300px; display: none;">
-                    <optgroup label="Телевизоры">
-                        <option value="4K">4K</option>
-                        <option value="LED">LED</option>
-                        <option value="OLED">OLED</option>
-                    </optgroup>
-                    <optgroup label="Телефоны">
-                        <option value="Смартфоны">Смартфоны</option>
-                        <option value="Кнопочные">Кнопочные</option>
-                    </optgroup>
-                    <optgroup label="Ноутбуки">
-                        <option value="Игровые">Игровые</option>
-                        <option value="Для работы">Для работы</option>
-                    </optgroup>
+
                 </select>
             </div>
 
@@ -198,68 +189,14 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
 <script type="module" src="js/part-index-auth.js"></script>
-<script type="module" src="js/part-index-cart.js"></script>
+<script src="js/part-index-cart.js"></script>
 
 <script>
 
 
-
     // Глобальный массив для избранных товаров
-    const favorites = [];
+    let favorites = [];
 
-    // Функция для добавления товара в избранное
-    function addToFavorites(product) {
-        const existingProduct = favorites.find(item => item.id === product.id);
-        if (!existingProduct) {
-            favorites.push(product);
-        }
-    }
-
-    // Функция для удаления товара из избранного
-    function removeFromFavorites(productId) {
-        const productIndex = favorites.findIndex(item => item.id === productId);
-        if (productIndex !== -1) {
-            favorites.splice(productIndex, 1);
-        }
-    }
-
-    // Функция для проверки, находится ли товар в избранном
-    function isFavorite(productId) {
-        return favorites.some(item => item.id === productId);
-    }
-
-    // Глобальная корзина
-    const cart = [];
-
-    // Обновление количества товаров в значке корзины
-    function updateCartCount() {
-        const cartCountElement = document.getElementById("cart-count");
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        cartCountElement.textContent = totalItems;
-    }
-
-    // Функция добавления товара в корзину
-    function addToCart(product) {
-        const existingProduct = cart.find(item => item.id === product.id);
-        if (existingProduct) {
-            existingProduct.quantity++;
-        } else {
-            cart.push({ ...product, quantity: 1 });
-        }
-        updateCartCount();
-    }
-
-    // Функция уменьшения количества товара
-    function removeFromCart(productId) {
-        const product = cart.find(item => item.id === productId);
-        if (product) {
-            product.quantity--;
-            if (product.quantity === 0) {
-                cart.splice(cart.indexOf(product), 1);
-            }
-        }
-        updateCartCount();
-    }
 
     document.addEventListener("DOMContentLoaded", function () {
         const contentArea = document.getElementById("dynamic-content-area");

@@ -8,7 +8,9 @@ require_once __DIR__ . '/routes/cart.php';
 require_once __DIR__ . '/routes/favorite-products.php';
 require_once __DIR__ . '/routes/auth.php';
 require_once __DIR__ . '/routes/orders.php';
+require_once __DIR__ . '/routes/product-versions.php';
 
+require_once __DIR__ . '/routes/user-orders.php';
 
 
 
@@ -17,7 +19,7 @@ require_once __DIR__ . '/helpers/Response.php';
 
 // Получение данных из входящего запроса
 $requestMethod = $_SERVER['REQUEST_METHOD'];
-$path = explode('/', trim($_SERVER['REQUEST_URI'], '/'));
+$path = explode('/', trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/'));
 $resource = $path[1] ?? null; // Пример: /users или /categories
 $id = $path[2] ?? null; // Пример: /users/1 или /categories/2
 
@@ -257,6 +259,70 @@ elseif ($resource === 'orders') {
                 Response::send(400, "Order ID is required for deletion");
             }
             deleteOrder($id);
+            break;
+        default:
+            Response::send(405, "Method not allowed");
+    }
+}
+elseif ($resource === 'user-orders') {
+    // Подключаем файл с логикой работы с заказами пользователя
+
+    switch ($requestMethod) {
+        case 'GET':
+            // Если указан ID – возвращаем конкретный заказ,
+            // иначе ожидается параметр user_id в GET-параметрах для получения списка заказов пользователя
+            if ($id) {
+                getUserOrderById($id);
+            } else {
+                if (!isset($_GET['user_id'])) {
+                    Response::error(400, "Параметр user_id обязателен");
+                    exit;
+                }
+                getUserOrders();
+            }
+            break;
+
+        case 'POST':
+            $data = json_decode(file_get_contents('php://input'), true);
+            addUserOrder($data);
+            break;
+
+        case 'PUT':
+            if (!$id) {
+                Response::error(400, "Order ID is required for update");
+                exit;
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+            updateUserOrder($id, $data);
+            break;
+
+        case 'DELETE':
+            Response::error(405, "Deleting orders is not permitted");
+            break;
+
+        default:
+            Response::error(405, "Method not allowed");
+    }
+}
+elseif ($resource === 'product-versions') {
+    switch ($requestMethod) {
+        case 'GET':
+            getProductVersions();
+            break;
+        case 'POST':
+            addProductVersion();
+            break;
+        case 'PUT':
+            if (!$id) {
+                Response::send(400, "Product version ID is required for update");
+            }
+            updateProductVersion($id);
+            break;
+        case 'DELETE':
+            if (!$id) {
+                Response::send(400, "Product version ID is required for deletion");
+            }
+            deleteProductVersion($id);
             break;
         default:
             Response::send(405, "Method not allowed");

@@ -1,11 +1,22 @@
-import { BASE_URL } from './config/config.js';
-
 // Глобальная переменная для хранения корзины
 let cart = [];
 
 // Инициализация обработчиков событий
 document.addEventListener('DOMContentLoaded', () => {
     const cartButton = document.getElementById('cartButton');
+    if (cartButton) {
+        cartButton.addEventListener('click', showCart);
+    } else {
+        console.error("Кнопка 'Корзина' не найдена в DOM.");
+    }
+    // Загружаем корзину при загрузке страницы
+    const userId = getUserId();
+    if (userId) fetchCart(userId);
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const cartButton = document.getElementById('catalogButton');
     if (cartButton) {
         cartButton.addEventListener('click', showCart);
     } else {
@@ -23,6 +34,7 @@ function fetchCart(userId) {
         .then(data => {
             if (data.status === 200) {
                 cart = data.data;
+                syncCartWithUI();
                 updateCartCount();
             } else {
                 console.error('Ошибка загрузки корзины:', data.message);
@@ -35,6 +47,63 @@ function fetchCart(userId) {
             cart = [];
             updateCartCount();
         });
+}
+
+function addToCart(product) {
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
+        return;
+    }
+    fetch(`${BASE_URL}cart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user_id: userId,
+            product_id: product.id,
+            quantity: 1
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 200 || data.status === 201) {
+                Swal.fire('Товар добавлен в корзину', `${product.name} успешно добавлен.`, 'success');
+                // Обновляем корзину после добавления
+                fetchCart(userId);
+                fetchFavorites();
+
+            } else {
+                Swal.fire('Ошибка', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка добавления товара в корзину:', error);
+            Swal.fire('Ошибка', 'Не удалось добавить товар в корзину', 'error');
+        });
+}
+
+// Синхронизация корзины с пользовательским интерфейсом
+function syncCartWithUI() {
+    cart.forEach(cartItem => {
+        const quantityElement = $(`.quantity-value[data-product-id="${cartItem.product_id}"]`);
+        const cartControls = $(`.cart-controls[data-product-id="${cartItem.product_id}"]`);
+
+        // Синхронизируем количество в карточках товаров
+        if (quantityElement.length) {
+            quantityElement.text(cartItem.quantity);
+        }
+
+        // Убедимся, что отображаются элементы управления количеством
+        if (cartControls.length) {
+            cartControls.html(`
+                <div class="quantity-controls d-flex align-items-center" data-cart-id="${cartItem.id}" data-product-id="${cartItem.product_id}">
+                    <button class="btn btn-outline-light quantity-decrease" data-cart-id="${cartItem.id}">-</button>
+                    <span class="quantity-value mx-2" data-cart-id="${cartItem.id}">${cartItem.quantity}</span>
+                    <button class="btn btn-outline-light quantity-increase" data-cart-id="${cartItem.id}">+</button>
+                </div>
+            `);
+        }
+    });
 }
 
 // Функция отображения корзины
@@ -52,7 +121,6 @@ function showCart() {
         allowOutsideClick: false
     });
 
-    // Загружаем данные корзины перед отображением
     fetch(`${BASE_URL}cart/${userId}`)
         .then(response => response.json())
         .then(data => {
@@ -71,7 +139,7 @@ function showCart() {
                             <tr>
                                 <td><img src="${product.image_path}" alt="${product.product_name}" style="height: 50px;"></td>
                                 <td>${product.product_name}</td>
-                                <td>${product.price} ₽</td>
+                                <td>${product.price} сум</td>
                                 <td>
                                     <input type="number" 
                                            class="form-control form-control-sm quantity-input" 
@@ -91,9 +159,8 @@ function showCart() {
                 }
 
                 cartHTML += '</tbody></table>';
-                cartHTML += `<div class="text-end fw-bold">Итого: ${total} ₽</div>`;
+                cartHTML += `<div class="text-end fw-bold">Итого: ${total} сум</div>`;
 
-                // Отображаем SweetAlert с корзиной
                 Swal.fire({
                     title: 'Корзина',
                     html: cartHTML,
@@ -113,7 +180,7 @@ function showCart() {
                     }
                 });
 
-                // Устанавливаем обработчики на input для изменения количества
+                // Обработчики изменения количества в корзине
                 document.querySelectorAll('.quantity-input').forEach(input => {
                     input.addEventListener('change', (event) => {
                         const cartItemId = event.target.dataset.cartId;
@@ -122,16 +189,16 @@ function showCart() {
                             updateCartQuantity(cartItemId, quantity);
                         } else {
                             Swal.fire('Ошибка', 'Количество должно быть больше 0', 'error');
-                            event.target.value = 1; // Сбрасываем значение
+                            event.target.value = 1;
                         }
                     });
                 });
 
-                // Устанавливаем обработчики на кнопки удаления
+                // Обработчики кнопок удаления в корзине
                 document.querySelectorAll('.btn-danger').forEach(button => {
                     button.addEventListener('click', (event) => {
                         const cartItemId = event.target.dataset.cartId;
-                        updateCartQuantity(cartItemId, 0); // Устанавливаем количество в 0 для удаления
+                        updateCartQuantity(cartItemId, 0);
                     });
                 });
             } else {
@@ -143,34 +210,7 @@ function showCart() {
         });
 }
 
-
-// Функция добавления продукта в корзину
-function addToCart(productId, quantity = 1) {
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
-        return;
-    }
-
-    fetch(`${BASE_URL}cart`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, product_id: productId, quantity })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 201 || data.status === 200) {
-                fetchCart(userId);
-            } else {
-                Swal.fire('Ошибка', data.message, 'error');
-            }
-        })
-        .catch(() => {
-            Swal.fire('Ошибка', 'Не удалось добавить продукт в корзину', 'error');
-        });
-}
-
-// Функция обновления количества продукта в корзине
+// Функция обновления количества продукта
 function updateCartQuantity(cartItemId, quantity) {
     const userId = getUserId();
 
@@ -182,7 +222,7 @@ function updateCartQuantity(cartItemId, quantity) {
         .then(response => response.json())
         .then(data => {
             if (data.status === 200) {
-                fetchCart(userId);
+                fetchCart(userId); // Синхронизируем корзину
             } else {
                 Swal.fire('Ошибка', data.message, 'error');
             }
@@ -192,38 +232,88 @@ function updateCartQuantity(cartItemId, quantity) {
         });
 }
 
-// Функция очистки корзины
 function clearCart(userId) {
     fetch(`${BASE_URL}cart/${userId}`, {
         method: 'DELETE'
     })
         .then(response => response.json())
         .then(data => {
-            if (data.status === 200) {
-                fetchCart(userId);
+            // Используем нестрогое сравнение, чтобы корректно обработать "200" или 200
+            if (data.status == 200) {
+                Swal.fire('Корзина очищена', data.message, 'success').then(() => {
+                    cart = [];
+                    updateCartCount();
+                    // Обновляем карточки товаров, чтобы заменить блок управления количеством на кнопку "В корзину"
+                    loadProducts();
+                });
             } else {
                 Swal.fire('Ошибка', data.message, 'error');
             }
         })
-        .catch(() => {
+        .catch(error => {
+            console.error('Ошибка при очистке корзины:', error);
             Swal.fire('Ошибка', 'Не удалось очистить корзину', 'error');
         });
 }
 
-// Функция обработки заказа
 function processOrder() {
-    Swal.fire('Успешно!', 'Заказ оформлен!', 'success');
-    clearCart(getUserId());
+    const userId = getUserId();
+    if (!userId) {
+        Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
+        return;
+    }
+    if (cart.length === 0) {
+        Swal.fire('Ошибка', 'Корзина пуста', 'error');
+        return;
+    }
+
+    // Для каждого товара из корзины отправляем данные на сервер, где внутри addUserOrder
+    // происходит: получение данных из products, создание записи в product_versions, расчёт total_price и оформление заказа.
+    const orderPromises = cart.map(item => {
+        const orderData = {
+            product_id: item.product_id,  // идентификатор продукта
+            user_id: userId,              // идентификатор пользователя
+            quantity: item.quantity       // количество товара
+        };
+
+        return fetch(`${BASE_URL}user-orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        }).then(response => response.json());
+    });
+
+    Promise.all(orderPromises)
+        .then(results => {
+            // Проверяем, что все заказы создались успешно (ответы с кодом 200 или 201)
+            const failedOrders = results.filter(result => !(result.status === 200 || result.status === 201));
+            if (failedOrders.length === 0) {
+                Swal.fire('Успех', 'Заказ оформлен успешно', 'success')
+                    .then(() => {
+                        clearCart(userId);
+                        // При необходимости можно перенаправить пользователя на страницу заказов:
+                        // window.location.href = 'orders.html';
+                    });
+            } else {
+                Swal.fire('Ошибка', 'Не удалось оформить заказ для некоторых товаров', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при оформлении заказа:', error);
+            Swal.fire('Ошибка', 'Произошла ошибка при оформлении заказа', 'error');
+        });
 }
 
-// Обновление количества товаров в корзине
+
+// Функция для отображения количества товаров в корзине
 function updateCartCount() {
     const cartCountElement = document.getElementById('cart-count');
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity), 0);
     cartCountElement.textContent = totalItems;
 }
 
-// Получение ID текущего пользователя
+
+// Функция для получения ID пользователя
 function getUserId() {
     const user = JSON.parse(localStorage.getItem('user'));
     return user ? user.user_id : null;

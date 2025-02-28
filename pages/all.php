@@ -195,6 +195,7 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
                     markFavorites();
                     const userId = getUserId();
                     if (userId) {
+                        fetchFavorites();
                         fetchCart(userId);
                     }
                 },
@@ -227,40 +228,40 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
             Swal.fire('Товар добавлен в корзину', `${productName} успешно добавлен.`, 'success');
             const cartControls = button.closest('.cart-controls');
             cartControls.html(`
-                <div class="quantity-controls d-flex align-items-center">
-                    <button class="btn btn-outline-light quantity-decrease" data-product-id="${productId}">-</button>
-                    <span class="quantity-value mx-2" data-product-id="${productId}">1</span>
-                    <button class="btn btn-outline-light quantity-increase" data-product-id="${productId}">+</button>
-                </div>`);
+                 <div class="quantity-controls d-flex align-items-center" data-cart-id="${productId}">
+                     <button class="btn btn-outline-light quantity-decrease" data-cart-id="${productId}">-</button>
+                     <span class="quantity-value mx-2" data-cart-id="${productId}">1</span>
+                     <button class="btn btn-outline-light quantity-increase" data-cart-id="${productId}">+</button>
+                 </div>`);
         });
 
-        productsContainer.on('click', '.quantity-increase', function () {
-            const cartItemId = $(this).data('cart-id');
-            const quantityValueElement = $(`.quantity-value[data-cart-id="${cartItemId}"]`);
-            let quantity = parseInt(quantityValueElement.text(), 10);
-            quantity++;
-            quantityValueElement.text(quantity);
-            updateCartQuantity(cartItemId, quantity);
-        });
+         productsContainer.on('click', '.quantity-increase', function () {
+             const cartItemId = $(this).data('cart-id');
+             const quantityValueElement = $(this).siblings('.quantity-value');
+             let quantity = parseInt(quantityValueElement.text(), 10);
+             quantity++;
+             quantityValueElement.text(quantity);
+             updateCartQuantity(cartItemId, quantity);
+         });
 
-        productsContainer.on('click', '.quantity-decrease', function () {
-            const cartItemId = $(this).data('cart-id');
-            const quantityValueElement = $(`.quantity-value[data-cart-id="${cartItemId}"]`);
-            let quantity = parseInt(quantityValueElement.text(), 10);
-            if (quantity > 1) {
-                quantity--;
-                quantityValueElement.text(quantity);
-                updateCartQuantity(cartItemId, quantity);
-            } else {
-                const cartControls = $(this).closest('.cart-controls');
-                const productId = cartControls.data('product-id');
-                cartControls.html(`
-                    <button class="btn btn-outline-light add-to-cart-btn w-100" data-product-id="${productId}">
-                        <i class="fas fa-shopping-bag"></i> В корзину
-                    </button>`);
-                updateCartQuantity(cartItemId, 0);
-            }
-        });
+         productsContainer.on('click', '.quantity-decrease', function () {
+             const cartItemId = $(this).data('cart-id');
+             const quantityValueElement = $(this).siblings('.quantity-value');
+             let quantity = parseInt(quantityValueElement.text(), 10);
+             if (quantity > 1) {
+                     quantity--;
+                     quantityValueElement.text(quantity);
+                     updateCartQuantity(cartItemId, quantity);
+                 } else {
+                     const cartControls = $(this).closest('.cart-controls');
+                     const productId = cartControls.data('product-id');
+                     cartControls.html(`
+             <button class="btn btn-outline-light add-to-cart-btn w-100" data-product-id="${productId}">
+                 <i class="fas fa-shopping-bag"></i> В корзину
+             </button>`);
+                     updateCartQuantity(cartItemId, 0);
+                 }
+         });
 
         loadProducts();
     });

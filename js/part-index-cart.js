@@ -74,23 +74,15 @@ function addToCart(product) {
 // Синхронизация корзины с пользовательским интерфейсом
 function syncCartWithUI() {
     cart.forEach(cartItem => {
-        const quantityElement = $(`.quantity-value[data-product-id="${cartItem.product_id}"]`);
         const cartControls = $(`.cart-controls[data-product-id="${cartItem.product_id}"]`);
-
-        // Синхронизируем количество в карточках товаров
-        if (quantityElement.length) {
-            quantityElement.text(cartItem.quantity);
-        }
-
-        // Убедимся, что отображаются элементы управления количеством
         if (cartControls.length) {
-            cartControls.html(`
-                <div class="quantity-controls d-flex align-items-center" data-cart-id="${cartItem.id}" data-product-id="${cartItem.product_id}">
-                    <button class="btn btn-outline-light quantity-decrease" data-cart-id="${cartItem.id}">-</button>
-                    <span class="quantity-value mx-2" data-cart-id="${cartItem.id}">${cartItem.quantity}</span>
-                    <button class="btn btn-outline-light quantity-increase" data-cart-id="${cartItem.id}">+</button>
-                </div>
-            `);
+             cartControls.html(`
+                 <div class="quantity-controls d-flex align-items-center">
+                     <button class="btn btn-outline-light quantity-decrease" data-cart-id="${cartItem.id}">-</button>
+                     <span class="quantity-value mx-2" data-cart-id="${cartItem.id}">${cartItem.quantity}</span>
+                     <button class="btn btn-outline-light quantity-increase" data-cart-id="${cartItem.id}">+</button>
+                 </div>
+             `);
         }
     });
 }

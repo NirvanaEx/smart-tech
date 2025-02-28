@@ -236,6 +236,12 @@
                     }
                     document.body.appendChild(newScript);
                 });
+                // Добавляем вызов для синхронизации корзины и избранного
+                const userId = getUserId();
+                if (userId) {
+                    fetchCart(userId);
+                    fetchFavorites();
+                }
             })
             .catch(error => {
                 contentArea.innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;

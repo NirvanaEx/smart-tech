@@ -1,255 +1,286 @@
+<?php
+// favorites.php
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Избранные товары</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Избранные товары - SMART.INC</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- Дополнительные стили для избранного -->
     <style>
-        .cart-controls-container {
+        .fav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .fav-card {
+            background: #333;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .fav-card img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        .fav-btn {
+            cursor: pointer;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+        }
+        .fav-btn-add {
+            background: #007bff;
+            color: #fff;
+        }
+        .fav-btn-add:hover {
+            background: #0056b3;
+        }
+        .fav-quantity-controls {
+            display: flex;
+            align-items: center;
+        }
+        .fav-quantity-controls button {
+            padding: 5px;
+        }
+        .fav-quantity-value {
+            margin: 0 10px;
+        }
+        .fav-btn-favorite {
+            background: transparent;
+            border: 1px solid red;
+            color: red;
+            padding: 3px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .fav-cart-controls-container {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            margin-top: 10px;
         }
-        .cart-controls {
+        .fav-cart-controls {
             flex: 1;
-        }
-        .cart-controls-container .btn {
-            text-align: center;
-        }
-        .btn-favorite,
-        .btn-compare {
-            flex: initial;
-            margin-left: 5px;
+            text-align: right;
         }
     </style>
-    <!-- Подключаем jQuery и SweetAlert -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
-<div class="container my-4">
-    <div class="row g-4" id="favorites-container">
-        <!-- Избранные товары будут отображаться здесь -->
-    </div>
+<body class="bg-dark text-light">
+<div class="fav-container my-4">
+    <h1>Избранные товары</h1>
+    <div id="fav-favorites-container"></div>
 </div>
 
+<!-- jQuery -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Определение BASE_URL (используйте тот же адрес, что и в index.php) -->
 <script>
+    const BASE_URL = 'http://smart-tech/API/';
+</script>
+<!-- Скрипты для работы с избранным и синхронизации с корзиной -->
+<script>
+    // Префикс "fav-" используется для функций избранного
+    let favCart = [];
+    let favFavorites = [];
 
-
-    // Функция для получения ID пользователя (пример: из localStorage)
-    function getUserId() {
+    // Функция получения ID пользователя из localStorage
+    function favGetUserId() {
         const user = JSON.parse(localStorage.getItem('user'));
         return user ? user.user_id : null;
     }
 
-    // Функция для получения корзины с сервера
-    function fetchCart(userId) {
+    // Получаем корзину пользователя
+    function favFetchCart(userId, callback) {
         $.ajax({
-            url: `${BASE_URL}cart/${userId}`,
+            url: BASE_URL + 'cart/' + userId,
             method: 'GET',
             dataType: 'json',
             success: function(response) {
-                if (response.status == 200) {
-                    cart = response.data;
-                } else {
-                    cart = [];
-                }
+                favCart = (response.status == 200) ? response.data : [];
+                if(callback) callback();
             },
-            error: function(xhr, status, error) {
-                console.error('Ошибка получения корзины:', error);
-                cart = [];
+            error: function() {
+                favCart = [];
+                if(callback) callback();
             }
         });
     }
 
-    // Функция для получения избранных товаров для текущего пользователя
-    function fetchFavorites(callback) {
-        const userId = getUserId();
+    // Получаем список избранных товаров пользователя
+    function favFetchFavorites(callback) {
+        const userId = favGetUserId();
         if (!userId) {
             Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
             return;
         }
         $.ajax({
-            url: `${BASE_URL}favorite-products/${userId}`,
+            url: BASE_URL + 'favorite-products/' + userId,
             method: 'GET',
             dataType: 'json',
             success: function(response) {
-                if (response.status != 200) {
+                if(response.status == 200) {
+                    favFavorites = response.data;
+                    if(callback) callback();
+                } else {
                     Swal.fire('Ошибка', response.message, 'error');
-                    return;
-                }
-                favorites = response.data; // Обновляем глобальное хранилище избранного
-                if (typeof callback === 'function') {
-                    callback();
                 }
             },
             error: function(xhr, status, error) {
-                Swal.fire('Ошибка', `Не удалось получить избранные товары: ${xhr.status} - ${error}`, 'error');
+                Swal.fire('Ошибка', `Не удалось получить избранное: ${xhr.status} - ${error}`, 'error');
             }
         });
     }
 
-    // Функция для загрузки избранных товаров и их отображения на странице
-    function loadFavorites() {
-        const favoritesContainer = $('#favorites-container');
-        favoritesContainer.html('<div class="text-center text-light">Загрузка...</div>');
-
-        // Получаем массив id товаров, добавленных в избранное (из поля product_id)
-        const favoritesIds = favorites.map(item => parseInt(item.product_id));
-
+    // Функция отрисовки карточек избранных товаров
+    function favLoadFavorites() {
+        const container = $('#fav-favorites-container');
+        container.empty();
+        if (!favFavorites.length) {
+            container.html('<p>Нет избранных товаров.</p>');
+            return;
+        }
+        // Формируем массив id избранных товаров
+        const favIds = favFavorites.map(item => parseInt(item.product_id));
         $.ajax({
-            url: `${BASE_URL}products`,
+            url: BASE_URL + 'products',
             method: 'GET',
             dataType: 'json',
             success: function(response) {
-                if (response.status !== 200) {
-                    favoritesContainer.html(`<div class="text-danger text-center">Ошибка: ${response.message}</div>`);
+                if(response.status !== 200) {
+                    container.html(`<p>Ошибка: ${response.message}</p>`);
                     return;
                 }
-
                 const products = response.data;
-                // Отбираем только те товары, id которых есть в favoritesIds
-                const favoriteProducts = products.filter(product => favoritesIds.includes(product.id));
-
-                favoritesContainer.empty();
-
-                if (favoriteProducts.length === 0) {
-                    favoritesContainer.html('<div class="text-center text-light">Нет избранных товаров.</div>');
+                const favoriteProducts = products.filter(product => favIds.includes(product.id));
+                if(!favoriteProducts.length) {
+                    container.html('<p>Нет избранных товаров.</p>');
                     return;
                 }
-
                 favoriteProducts.forEach(product => {
-                    // Проверяем, добавлен ли товар в корзину (сравниваем по product.id)
-                    const cartItem = cart.find(item => item.product_id === product.id);
-                    const isInCart = !!cartItem;
-
-                    const card = `
-                        <div class="col-12 col-sm-6 col-md-6 col-lg-4">
-                            <div class="card bg-dark text-light h-100">
-                                <img src="${product.image_url}" class="card-img-top" alt="${product.product_name}">
-                                <div class="card-body d-flex flex-column">
-                                    <h5 class="card-title">${product.product_name}</h5>
-                                    <p class="card-text">${product.description}</p>
-                                    <p class="card-text"><strong>Цена:</strong> ${product.price} ₽</p>
-                                    <div class="mt-auto d-flex align-items-center cart-controls-container">
-                                        <div class="cart-controls" data-product-id="${product.id}">
-                                            ${isInCart
-                        ? `
-                                                    <div class="quantity-controls d-flex align-items-center">
-                                                        <button class="btn btn-outline-light quantity-decrease" data-product-id="${product.id}">-</button>
-                                                        <span class="quantity-value mx-2" data-product-id="${product.id}">${cartItem.quantity}</span>
-                                                        <button class="btn btn-outline-light quantity-increase" data-product-id="${product.id}">+</button>
-                                                    </div>
-                                                `
-                        : `
-                                                    <button class="btn btn-outline-light add-to-cart-btn w-100" data-product-id="${product.id}">
-                                                        <i class="fas fa-shopping-bag"></i> В корзину
-                                                    </button>
-                                                `}
-                                        </div>
-                                        <div class="d-flex">
-                                            <button class="btn btn-outline-light btn-favorite active" data-product-id="${product.id}" style="color: red;">
-                                                <i class="fas fa-heart"></i>
-                                            </button>
-                                            <button class="btn btn-outline-light btn-compare" data-product-id="${product.id}">
-                                                <i class="fas fa-exchange-alt"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    favoritesContainer.append(card);
+                    // Если товар уже есть в корзине, выводим элементы управления количеством
+                    const cartItem = favCart.find(item => parseInt(item.product_id) === product.id);
+                    let controlsHtml = '';
+                    if(cartItem) {
+                        controlsHtml = `
+                          <div class="fav-quantity-controls">
+                              <button class="fav-btn fav-quantity-decrease" data-product-id="${product.id}" data-fav-cart-id="${cartItem.id}">-</button>
+                              <span class="fav-quantity-value" data-product-id="${product.id}" data-fav-cart-id="${cartItem.id}">${cartItem.quantity}</span>
+                              <button class="fav-btn fav-quantity-increase" data-product-id="${product.id}" data-fav-cart-id="${cartItem.id}">+</button>
+                          </div>
+                          `;
+                    } else {
+                        controlsHtml = `<button class="fav-btn fav-btn-add add-to-cart-btn" data-product-id="${product.id}">В корзину</button>`;
+                    }
+                    const cardHtml = `
+                      <div class="fav-card" data-product-id="${product.id}">
+                          <img src="${product.image_path}" alt="${product.product_name}">
+                          <h3>${product.product_name}</h3>
+                          <p>${product.description}</p>
+                          <p><strong>Цена:</strong> ${product.price} ₽</p>
+                          <div class="fav-cart-controls-container">
+                              <div class="fav-cart-controls" data-product-id="${product.id}">
+                                  ${controlsHtml}
+                              </div>
+                          </div>
+                          <button class="fav-btn fav-btn-favorite" data-product-id="${product.id}">Удалить из избранного</button>
+                      </div>
+                      `;
+                    container.append(cardHtml);
                 });
             },
             error: function(xhr, status, error) {
-                favoritesContainer.html(`<div class="text-danger text-center">Ошибка: ${xhr.status} - ${error}</div>`);
+                container.html(`<p>Ошибка: ${xhr.status} - ${error}</p>`);
             }
         });
     }
 
-    // Функция для добавления товара в корзину
-    function addToCart(product) {
-        const userId = getUserId();
+    // Функция добавления товара в корзину
+    function favAddToCart(product) {
+        const userId = favGetUserId();
         if (!userId) {
             Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
             return;
         }
         $.ajax({
-            url: `${BASE_URL}cart`,
+            url: BASE_URL + 'cart',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({
-                user_id: userId,
-                product_id: product.id,
-                quantity: product.quantity ? product.quantity : 1
-            }),
+            data: JSON.stringify({ user_id: userId, product_id: product.id, quantity: product.quantity || 1 }),
             dataType: 'json',
             success: function(response) {
-                if (response.status == 200 || response.status == 201) {
-                    // Обновляем корзину после добавления
-                    fetchCart(userId);
+                if(response.status == 200 || response.status == 201) {
+                    favFetchCart(userId, favLoadFavorites);
                 } else {
                     Swal.fire('Ошибка', response.message, 'error');
                 }
             },
-            error: function(xhr, status, error) {
+            error: function() {
                 Swal.fire('Ошибка', 'Не удалось добавить товар в корзину', 'error');
             }
         });
     }
 
-    // Функция для удаления товара из корзины (сбрасываем количество до 0)
-    function removeFromCart(productId) {
-        const userId = getUserId();
+    // Функция обновления количества товара в корзине
+    function favUpdateCartQuantity(cartItemId, quantity) {
+        const userId = favGetUserId();
         $.ajax({
-            url: `${BASE_URL}cart/${productId}`,
+            url: BASE_URL + 'cart/' + cartItemId,
             method: 'PUT',
             contentType: 'application/json',
-            data: JSON.stringify({ quantity: 0 }),
+            data: JSON.stringify({ quantity: quantity }),
             dataType: 'json',
             success: function(response) {
-                if (response.status == 200) {
-                    fetchCart(userId);
+                if(response.status === 200) {
+                    favFetchCart(userId, favLoadFavorites);
                 } else {
                     Swal.fire('Ошибка', response.message, 'error');
                 }
             },
-            error: function(xhr, status, error) {
-                Swal.fire('Ошибка', 'Не удалось удалить товар из корзины', 'error');
+            error: function() {
+                Swal.fire('Ошибка', 'Не удалось обновить количество товара', 'error');
             }
         });
     }
 
-    // Функция для удаления товара из избранного
-    function removeFromFavorites(productId) {
-        const userId = getUserId();
+    // Функция удаления товара из корзины (если нужно уменьшить до 0)
+    function favRemoveFromCart(productId) {
+        const cartItem = favCart.find(item => parseInt(item.product_id) === productId);
+        if(cartItem) {
+            favUpdateCartQuantity(cartItem.id, 0);
+        }
+    }
+
+    // Функция удаления товара из избранного
+    function favRemoveFromFavorites(productId) {
+        const userId = favGetUserId();
         if (!userId) {
             Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
             return;
         }
-        // Находим запись избранного по productId (поле product_id)
-        const favoriteRecord = favorites.find(item => parseInt(item.product_id) === productId);
-        if (!favoriteRecord) {
+        const favRecord = favFavorites.find(item => parseInt(item.product_id) === productId);
+        if (!favRecord) {
             Swal.fire('Ошибка', 'Товар не найден в избранном', 'error');
             return;
         }
         $.ajax({
-            url: `${BASE_URL}favorite-products/${favoriteRecord.id}`,
+            url: BASE_URL + 'favorite-products/' + favRecord.id,
             method: 'DELETE',
             dataType: 'json',
             success: function(response) {
-                if (response.status == 200) {
-                    Swal.fire({
-                        icon: "info",
-                        title: "Удалено из избранного",
-                        text: "Товар удалён из избранного.",
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                    // После удаления обновляем список избранного и перерисовываем страницу
-                    fetchFavorites(loadFavorites);
+                if(response.status == 200) {
+                    Swal.fire({ icon: "info", title: "Удалено из избранного", timer: 1500, showConfirmButton: false });
+                    favFetchFavorites(favLoadFavorites);
                 } else {
                     Swal.fire('Ошибка', response.message, 'error');
                 }
@@ -260,68 +291,51 @@
         });
     }
 
-    $(document).ready(function () {
-        // При загрузке страницы получаем ID пользователя, корзину и избранное
-        const userId = getUserId();
-        if (userId) {
-            fetchCart(userId);
-            fetchFavorites(loadFavorites);
+    // Инициализация событий при загрузке документа
+    $(document).ready(function(){
+        const userId = favGetUserId();
+        if(userId){
+            favFetchCart(userId, function(){
+                favFetchFavorites(favLoadFavorites);
+            });
+        } else {
+            $('#fav-favorites-container').html('<p>Пользователь не авторизован</p>');
         }
 
-        // Обработчик для кнопок "Добавить в корзину"
-        $('#favorites-container').on('click', '.add-to-cart-btn', function () {
+        // Добавление товара в корзину
+        $('#fav-favorites-container').on('click', '.add-to-cart-btn', function(){
             const productId = parseInt($(this).data('product-id'));
-            const productName = $(this).closest('.card-body').find('.card-title').text().trim();
-            const productPrice = parseFloat($(this).closest('.card-body').find('.card-text strong').text().replace(/[^\d.]/g, ''));
-            addToCart({
-                id: productId,
-                name: productName,
-                price: productPrice
-            });
-            Swal.fire({
-                icon: "success",
-                title: "Товар добавлен в корзину!",
-                text: `${productName} успешно добавлен.`,
-                timer: 1500,
-                showConfirmButton: false
-            });
-            // Обновляем избранное после добавления в корзину
-            fetchFavorites(loadFavorites);
+            favAddToCart({ id: productId });
         });
 
-        // Обработчик для кнопок "+" (увеличение количества товара)
-        $('#favorites-container').on('click', '.quantity-increase', function () {
-            const productId = parseInt($(this).data('product-id'));
-            const quantityValueElement = $(`.quantity-value[data-product-id="${productId}"]`);
-            let quantity = parseInt(quantityValueElement.text(), 10);
-            quantity++;
-            quantityValueElement.text(quantity);
-            // Добавляем в корзину ещё один товар
-            addToCart({
-                id: productId,
-                quantity: 1
-            });
+        // Увеличение количества товара в корзине
+        $('#fav-favorites-container').on('click', '.fav-quantity-increase', function(){
+            const cartId = $(this).data('fav-cart-id');
+            const qtyElem = $(`.fav-quantity-value[data-fav-cart-id="${cartId}"]`);
+            let qty = parseInt(qtyElem.text(), 10);
+            qty++;
+            qtyElem.text(qty);
+            favUpdateCartQuantity(cartId, qty);
         });
 
-        // Обработчик для кнопок "-" (уменьшение количества товара)
-        $('#favorites-container').on('click', '.quantity-decrease', function () {
-            const productId = parseInt($(this).data('product-id'));
-            const quantityValueElement = $(`.quantity-value[data-product-id="${productId}"]`);
-            let quantity = parseInt(quantityValueElement.text(), 10);
-            if (quantity > 1) {
-                quantity--;
-                quantityValueElement.text(quantity);
-                removeFromCart(productId);
-            } else if (quantity === 1) {
-                removeFromCart(productId);
-                fetchFavorites(loadFavorites);
+        // Уменьшение количества товара в корзине (при достижении 1 – удаляем товар)
+        $('#fav-favorites-container').on('click', '.fav-quantity-decrease', function(){
+            const cartId = $(this).data('fav-cart-id');
+            const qtyElem = $(`.fav-quantity-value[data-fav-cart-id="${cartId}"]`);
+            let qty = parseInt(qtyElem.text(), 10);
+            if(qty > 1) {
+                qty--;
+                qtyElem.text(qty);
+                favUpdateCartQuantity(cartId, qty);
+            } else {
+                favRemoveFromCart(parseInt($(this).data('product-id')));
             }
         });
 
-        // Обработчик для кнопок удаления из избранного
-        $('#favorites-container').on('click', '.btn-favorite', function () {
+        // Удаление товара из избранного
+        $('#fav-favorites-container').on('click', '.fav-btn-favorite', function(){
             const productId = parseInt($(this).data('product-id'));
-            removeFromFavorites(productId);
+            favRemoveFromFavorites(productId);
         });
     });
 </script>

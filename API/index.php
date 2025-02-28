@@ -145,7 +145,10 @@ elseif ($resource === 'subcategories') {
 elseif ($resource === 'products') {
     switch ($requestMethod) {
         case 'GET':
-            if (isset($_GET['query'])) {
+            if (isset($_GET['new']) && $_GET['new'] == 1) {
+                // Если передан параметр new=1, возвращаем новинки
+                getNewProducts();
+            } elseif (isset($_GET['query'])) {
                 // Если передан параметр поиска
                 searchProducts($_GET['query']);
             } elseif (!empty($id)) {

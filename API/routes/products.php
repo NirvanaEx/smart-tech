@@ -71,6 +71,51 @@ function getProducts() {
     }
 }
 
+// Получение новинок (последние товары)
+function getNewProducts() {
+    $pdo = getDatabaseConnection();
+    $config = include __DIR__ . '/../config/path.php';
+    $baseImagePath = $config['base_image_path'];
+    // Если передан параметр limit, используем его, иначе по умолчанию 5
+    $limit = (isset($_GET['limit']) && is_numeric($_GET['limit'])) ? intval($_GET['limit']) : 5;
+
+    try {
+        $query = "
+            SELECT 
+                products.id, 
+                products.name AS product_name, 
+                products.description, 
+                products.quantity, 
+                products.date_creation, 
+                products.updated_at, 
+                products.data_status,
+                products.image_path, 
+                CONCAT(:base_path, products.image_path) AS image_url, 
+                subcategory.name AS subcategory_name,
+                category.name AS category_name, 
+                IFNULL(
+                    (SELECT price FROM product_price WHERE product_id = products.id ORDER BY date_creation DESC LIMIT 1),
+                    0
+                ) AS price
+            FROM products
+            INNER JOIN subcategory ON products.subcategory_id = subcategory.id
+            INNER JOIN category ON subcategory.category_id = category.id
+            WHERE products.data_status != 'deleted'
+            ORDER BY products.date_creation DESC
+            LIMIT :limit
+        ";
+        $stmt = $pdo->prepare($query);
+        $stmt->bindValue(':base_path', $baseImagePath, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $products = $stmt->fetchAll();
+        Response::send(200, "New products fetched successfully", $products);
+    } catch (PDOException $e) {
+        Response::send(500, "Failed to fetch new products: " . $e->getMessage());
+    }
+}
+
 
 // Создание нового товара
 function addProduct() {

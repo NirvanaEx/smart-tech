@@ -127,9 +127,8 @@
             </button>
             <!-- Поле поиска -->
             <input type="text" id="searchInput" class="form-control" placeholder="Напишите название товара...">
-            <button class="btn btn-outline-light" data-page="favorites" data-title="Избранное">
-                <i class="fas fa-heart"></i> Избранное
-            </button>
+            <a href="pages/favorites.php" class="btn btn-outline-light"><i class="fas fa-heart"></i> Избранное</a>
+
             <button class="btn btn-outline-light"><i class="fas fa-exchange-alt"></i> Сравнить</button>
             <!-- Кнопка "Войти" -->
             <div id="auth-container">
@@ -158,7 +157,15 @@
         <section class="my-5" id="new-products-container">
             <h2 class="text-light" id="default-title">Новинки</h2>
             <div id="new-products-area">
-                <div class="text-center text-light">Загрузка...</div>
+                <!-- Контейнер для карусели -->
+                <div class="swiper">
+                    <div class="swiper-wrapper" id="newProductsWrapper">
+                        <!-- Слайды будут загружены через new-products.js -->
+                    </div>
+                    <div class="swiper-button-prev"></div>
+                    <div class="swiper-button-next"></div>
+                    <div class="swiper-pagination"></div>
+                </div>
             </div>
         </section>
     </div>
@@ -415,5 +422,8 @@
         });
     });
 </script>
+<script src="js/new-products.js"></script>
+<script src="js/favorites.js"></script>
+
 </body>
 </html>

@@ -213,19 +213,27 @@ function updateCartQuantity(cartItemId, quantity) {
         });
 }
 
+
+
+function updateCartView() {
+    const userId = getUserId();
+    if (userId) {
+        fetchCart(userId);  // обновляем данные корзины с сервера
+    }
+    loadProducts();         // перерисовываем карточки товаров
+    updateCartCount();      // обновляем счетчик в шапке
+}
+
 function clearCart(userId) {
     fetch(`${BASE_URL}cart/${userId}`, {
         method: 'DELETE'
     })
         .then(response => response.json())
         .then(data => {
-            // Используем нестрогое сравнение, чтобы корректно обработать "200" или 200
             if (data.status == 200) {
                 Swal.fire('Корзина очищена', data.message, 'success').then(() => {
                     cart = [];
-                    updateCartCount();
-                    // Обновляем карточки товаров, чтобы заменить блок управления количеством на кнопку "В корзину"
-                    loadProducts();
+                    updateCartView();
                 });
             } else {
                 Swal.fire('Ошибка', data.message, 'error');
@@ -236,6 +244,7 @@ function clearCart(userId) {
             Swal.fire('Ошибка', 'Не удалось очистить корзину', 'error');
         });
 }
+
 
 function processOrder() {
     const userId = getUserId();
@@ -272,6 +281,8 @@ function processOrder() {
                 Swal.fire('Успех', 'Заказ оформлен успешно', 'success')
                     .then(() => {
                         clearCart(userId);
+                        updateCartView();
+
                         // При необходимости можно перенаправить пользователя на страницу заказов:
                         // window.location.href = 'orders.html';
                     });

@@ -204,6 +204,9 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
                 }
             });
         }
+        window.loadProducts = loadProducts;
+
+
 
         productsContainer.on('click', '.btn-favorite', function () {
             const button = $(this);

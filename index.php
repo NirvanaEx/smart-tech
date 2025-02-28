@@ -10,9 +10,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Swiper.js CSS -->
     <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
-
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet">
-
+    <!-- jsTree CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,41 +30,35 @@
         footer {
             margin-top: auto;
         }
-
-        /* Banner   */
+        /* Banner */
         .banner {
             position: relative;
             border-radius: 20px;
-            overflow: hidden; /* Сохраняем скругление */
+            overflow: hidden;
         }
-
         .banner img {
             width: 100%;
             height: auto;
             display: block;
         }
-
         .banner-text {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.4); /* Полупрозрачный фон */
+            background-color: rgba(0, 0, 0, 0.4);
             padding: 20px;
-            border-radius: 10px; /* Скругление контейнера */
+            border-radius: 10px;
             color: white;
             text-align: center;
         }
-
         .banner-text h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
         }
-
         .banner-text p {
             margin-bottom: 15px;
         }
-
         .banner-text .btn {
             color: #fff;
             border: 1px solid #fff;
@@ -74,32 +68,36 @@
             background-color: transparent;
             transition: background-color 0.3s, color 0.3s;
         }
-
         .banner-text .btn:hover {
             background-color: #fff;
             color: #000;
         }
-
-
         /* Эффект наведения на логотип */
         .logo-link {
-            text-decoration: none; /* Убираем подчеркивание */
-            color: inherit; /* Используем текущий цвет текста */
-            transition: color 0.3s ease; /* Плавный переход цвета */
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.3s ease;
         }
-
         .logo-link:hover {
-            color: #6c7cdb; /* Цвет текста при наведении */
+            color: #6c7cdb;
         }
-
         .logo-link img {
-            transition: transform 0.3s ease; /* Плавный переход масштаба */
+            transition: transform 0.3s ease;
         }
-
         .logo-link:hover img {
-            transform: scale(1.1); /* Увеличиваем масштаб изображения при наведении */
+            transform: scale(1.1);
         }
-
+        /* Стили для контейнера дерева */
+        #categoryTreeContainer {
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #343a40;
+            padding: 10px;
+            border-radius: 5px;
+            color: #fff;
+        }
+        /* Убираем стандартные иконки jsTree, чтобы использовать Font Awesome */
+        .jstree-icon { display: none; }
     </style>
     <script>
         const BASE_URL = 'http://smart-tech/API/';
@@ -113,28 +111,22 @@
             <img src="upload/logo-placeholder.png" alt="Logo" style="height: 40px;" class="me-3">
             <span>SMART.INC</span>
         </a>
-
         <nav class="d-flex gap-3 align-items-center">
             <button class="btn btn-outline-light"><i class="fas fa-percent"></i> Акции</button>
-
-            <!-- Контейнер для кнопки "Каталог" и выпадающего списка -->
-            <div class="dropdown-catalog">
-                <button id="catalogButton" class="btn btn-outline-light">
-                    <i class="fas fa-th"></i> Каталог
-                </button>
-                <!-- Скрытый список категорий -->
-                <select id="categories" style="width: 300px; display: none;">
-
-                </select>
-            </div>
-
+            <!-- Кнопка для открытия древовидного меню каталога -->
+            <button type="button" id="catalogButton" class="btn btn-outline-light">
+                <i class="fas fa-th"></i> Каталог
+            </button>
+            <!-- Контейнер для древовидного меню каталога -->
+            <div id="categoryTreeContainer" class="dropdown-menu" style="display: none; position: absolute; z-index: 1000; min-width: 300px;"></div>
             <button id="cartButton" class="btn btn-outline-light position-relative">
                 <i class="fas fa-shopping-cart"></i> Корзина
                 <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                    0
-                </span>
+                      0
+                  </span>
             </button>
-            <input type="text" class="form-control" placeholder="Напишите название товара...">
+            <!-- Поле поиска -->
+            <input type="text" id="searchInput" class="form-control" placeholder="Напишите название товара...">
             <button class="btn btn-outline-light" data-page="favorites" data-title="Избранное">
                 <i class="fas fa-heart"></i> Избранное
             </button>
@@ -151,24 +143,33 @@
 
 <!-- Main Container -->
 <main class="container my-4" id="main-container">
-    <!-- Banner -->
-    <div class="banner bg-dark">
-        <img src="upload/banner-placeholder.jpg" alt="Banner">
-        <div class="banner-text">
-            <h1>SMART.INC SUPER SALE</h1>
-            <a href="#" class="btn" data-page="all" data-title="Все товары">Shop Now</a>
+    <!-- Default container: баннер + новинки -->
+    <div id="default-container">
+        <!-- Banner -->
+        <div class="banner bg-dark">
+            <img src="upload/banner-placeholder.jpg" alt="Banner">
+            <div class="banner-text">
+                <h1>SMART.INC SUPER SALE</h1>
+                <!-- При нажатии на Shop Now переключаемся на динамический контейнер -->
+                <a href="#" class="btn" id="shopNowButton">Shop Now</a>
+            </div>
         </div>
+        <!-- Контейнер для новых товаров (new.php) -->
+        <section class="my-5" id="new-products-container">
+            <h2 class="text-light" id="default-title">Новинки</h2>
+            <div id="new-products-area">
+                <div class="text-center text-light">Загрузка...</div>
+            </div>
+        </section>
     </div>
-    <!-- Новинки -->
-    <section class="my-5" id="dynamic-content">
-        <h2 class="text-light" id="dynamic-content-title">Новинки</h2>
-        <!-- Навигация -->
 
-        <!-- Контейнер для динамической загрузки -->
+    <!-- Dynamic container: для фильтров (all.php, поиск, категория и т.д.) -->
+    <div id="dynamic-content-container" style="display: none;">
+        <h2 class="text-light" id="dynamic-content-title"></h2>
         <div id="dynamic-content-area">
             <div class="text-center text-light">Загрузка...</div>
         </div>
-    </section>
+    </div>
 </main>
 
 <!-- Footer -->
@@ -176,92 +177,240 @@
     <p>&copy; 2024 SMART.INC</p>
 </footer>
 
-
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Font Awesome JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
 <!-- Swiper.js JS -->
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+<!-- jsTree JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
 <script type="module" src="js/part-index-auth.js"></script>
 <script src="js/part-index-cart.js"></script>
-
 <script>
+    // Глобальные переменные для фильтров
+    let currentCategory = '';
+    let currentSubcategory = '';
+    let currentSearch = '';
 
+    // Функция для загрузки динамического контента (например, all.php)
+    function loadDynamicContent() {
+        let url = 'all.php?';
+        if (currentCategory) {
+            url += 'category=' + encodeURIComponent(currentCategory) + '&';
+        }
+        if (currentSubcategory) {
+            url += 'subcategory=' + encodeURIComponent(currentSubcategory) + '&';
+        }
+        if (currentSearch) {
+            url += 'search=' + encodeURIComponent(currentSearch) + '&';
+        }
+        url = url.slice(0, -1);
 
-    // Глобальный массив для избранных товаров
-    let favorites = [];
+        // Переключаем контейнеры: скрываем default, показываем dynamic
+        document.getElementById("default-container").style.display = "none";
+        document.getElementById("dynamic-content-container").style.display = "block";
 
+        const contentArea = document.getElementById("dynamic-content-area");
+        contentArea.innerHTML = '<div class="text-center text-light">Загрузка...</div>';
+        fetch(`pages/${url}`)
+            .then(response => {
+                if (!response.ok) throw new Error("Ошибка загрузки страницы");
+                return response.text();
+            })
+            .then(html => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                contentArea.innerHTML = tempDiv.innerHTML;
+                const scripts = tempDiv.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    if (script.src) {
+                        newScript.src = script.src;
+                    } else {
+                        newScript.textContent = script.textContent;
+                    }
+                    document.body.appendChild(newScript);
+                });
+
+            })
+            .catch(error => {
+                contentArea.innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
+            });
+    }
+
+    // Функция для загрузки новых товаров (new.php) в default контейнер
+    function loadNewProducts() {
+        const newArea = document.getElementById("new-products-area");
+        newArea.innerHTML = '<div class="text-center text-light">Загрузка...</div>';
+        fetch(`pages/new.php`)
+            .then(response => {
+                if (!response.ok) throw new Error("Ошибка загрузки страницы");
+                return response.text();
+            })
+            .then(html => {
+                newArea.innerHTML = html;
+            })
+            .catch(error => {
+                newArea.innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
+            });
+    }
 
     document.addEventListener("DOMContentLoaded", function () {
-        const contentArea = document.getElementById("dynamic-content-area");
+        // Загружаем новинки по умолчанию
+        loadNewProducts();
 
-        // Обработчик для перезагрузки страницы при нажатии на логотип
+        // Перезагрузка страницы при клике на логотип
         const logoLink = document.getElementById("logo-link");
         logoLink.addEventListener("click", function (event) {
-            event.preventDefault(); // Предотвращаем переход по ссылке
-            window.location.reload(); // Перезагружаем страницу
+            event.preventDefault();
+            window.location.reload();
         });
 
+        // Функция для загрузки данных каталога (категории и подкатегории)
+        function loadCategoryTree() {
+            Promise.all([
+                fetch(`${BASE_URL}categories`).then(res => res.json()),
+                fetch(`${BASE_URL}subcategories`).then(res => res.json())
+            ]).then(([categoriesData, subcategoriesData]) => {
+                if (categoriesData.status !== 200) {
+                    console.error("Ошибка загрузки категорий");
+                    return;
+                }
+                const categories = categoriesData.data;
+                const subcategories = (subcategoriesData.status === 200) ? subcategoriesData.data : [];
+                // Формируем дерево с узлом "Все"
+                const treeData = [{
+                    id: "all",
+                    text: "Все",
+                    icon: "fa fa-folder",
+                    children: []
+                }].concat(
+                    categories.map(category => {
+                        const children = subcategories
+                            .filter(sub => parseInt(sub.category_id) === parseInt(category.id))
+                            .map(sub => ({
+                                id: `sub-${sub.id}`,
+                                text: sub.name,
+                                icon: "fa fa-folder"
+                            }));
+                        return {
+                            id: `cat-${category.id}`,
+                            text: category.name,
+                            icon: "fa fa-folder",
+                            children: children
+                        };
+                    })
+                );
 
-        // Функция для загрузки контента
-        function loadContent(page, title) {
-            contentArea.innerHTML = '<div class="text-center text-light">Загрузка...</div>';
-
-            fetch(`pages/${page}.php`)
-                .then(response => {
-                    if (!response.ok) throw new Error("Ошибка загрузки страницы");
-                    return response.text();
-                })
-                .then(html => {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = html;
-
-                    // Вставляем HTML контент в контейнер
-                    contentArea.innerHTML = tempDiv.innerHTML;
-
-                    // Выполняем встроенные скрипты
-                    const scripts = tempDiv.querySelectorAll('script');
-                    scripts.forEach(script => {
-                        const newScript = document.createElement('script');
-                        if (script.src) {
-                            // Если скрипт внешний
-                            newScript.src = script.src;
-                        } else {
-                            // Если скрипт встроенный
-                            newScript.textContent = script.textContent;
+                $('#categoryTree').jstree({
+                    'core': {
+                        'data': treeData,
+                        'themes': {
+                            'variant': 'large'
                         }
-                        document.body.appendChild(newScript);
-                    });
-
-                    // Обновляем заголовок
-                    document.getElementById("dynamic-content-title").textContent = title || "Заголовок";
-                })
-                .catch(error => {
-                    contentArea.innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
+                    }
                 });
+
+                // Обработка выбора узла дерева
+                $('#categoryTree').on("changed.jstree", function (e, data) {
+                    if (data.selected.length) {
+                        const node = data.instance.get_node(data.selected[0]);
+                        if (node.id === "all") {
+                            currentCategory = '';
+                            currentSubcategory = '';
+                        } else if (node.id.startsWith("cat-")) {
+                            currentCategory = node.text;
+                            currentSubcategory = '';
+                        } else if (node.id.startsWith("sub-")) {
+                            const parentNode = data.instance.get_node(data.instance.get_parent(node));
+                            currentCategory = parentNode.text;
+                            currentSubcategory = node.text;
+                        }
+                        // Не сбрасываем поисковый запрос, если он уже введён
+                        loadDynamicContent();
+                        $("#categoryTreeContainer").hide();
+                    }
+                });
+            }).catch(err => {
+                console.error("Ошибка загрузки каталога: ", err);
+            });
         }
 
-        // Обработка кликов на элементы с атрибутом data-page
+        // Показываем/скрываем древовидное меню каталога
+        const catalogButton = document.getElementById("catalogButton");
+        const categoryTreeContainer = document.getElementById("categoryTreeContainer");
+        if (!document.getElementById("categoryTree")) {
+            const treeDiv = document.createElement("div");
+            treeDiv.id = "categoryTree";
+            categoryTreeContainer.appendChild(treeDiv);
+        }
+        catalogButton.addEventListener("click", function (e) {
+            e.stopPropagation();
+            const rect = catalogButton.getBoundingClientRect();
+            categoryTreeContainer.style.top = (rect.bottom) + "px";
+            categoryTreeContainer.style.left = rect.left + "px";
+            categoryTreeContainer.style.display = "block";
+            if ($('#categoryTree').jstree(true) === false) {
+                loadCategoryTree();
+            }
+        });
+        document.addEventListener("click", function (e) {
+            if (!categoryTreeContainer.contains(e.target) && e.target !== catalogButton) {
+                categoryTreeContainer.style.display = "none";
+            }
+        });
+
+        // Обработчик изменения в поле поиска (автоматическое обновление)
+        const searchInput = document.getElementById("searchInput");
+        searchInput.addEventListener("input", function () {
+            currentSearch = searchInput.value.trim();
+            if (currentSearch !== '') {
+                // При вводе поиска сбрасываем фильтры по категории
+                currentCategory = '';
+                currentSubcategory = '';
+            }
+            loadDynamicContent();
+        });
+
+        // Обработчик клика по кнопке "Shop Now" – переключение на dynamic контент
+        const shopNowButton = document.getElementById("shopNowButton");
+        shopNowButton.addEventListener("click", function (e) {
+            e.preventDefault();
+            currentSearch = '';
+            loadDynamicContent();
+        });
+
+        // Обработка кликов для элементов с data-page (сброс фильтров)
         document.addEventListener('click', function (event) {
             const target = event.target.closest('[data-page]');
             if (target) {
                 event.preventDefault();
+                currentCategory = '';
+                currentSubcategory = '';
+                currentSearch = '';
+                document.getElementById("default-container").style.display = "none";
+                document.getElementById("dynamic-content-container").style.display = "block";
                 const page = target.getAttribute('data-page');
                 const title = target.getAttribute('data-title');
-                loadContent(page, title);
+                fetch(`pages/${page}.php`)
+                    .then(response => {
+                        if (!response.ok) throw new Error("Ошибка загрузки страницы");
+                        return response.text();
+                    })
+                    .then(html => {
+                        document.getElementById("dynamic-content-area").innerHTML = html;
+                        document.getElementById("dynamic-content-title").textContent = title || "Заголовок";
+                    })
+                    .catch(error => {
+                        document.getElementById("dynamic-content-area").innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
+                    });
             }
         });
-
-        // Загрузка страницы по умолчанию
-        loadContent('new', 'Новинки');
     });
-
 </script>
 </body>
 </html>

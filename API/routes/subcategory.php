@@ -4,20 +4,12 @@ require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../helpers/Response.php';
 
 // Получение списка подкатегорий
+// Получение списка подкатегорий
 function getSubcategories() {
     $pdo = getDatabaseConnection();
 
     try {
-        $stmt = $pdo->query("
-            SELECT 
-                subcategory.id, 
-                subcategory.name AS subcategory_name, 
-                category.name AS category_name, 
-                subcategory.date_creation, 
-                subcategory.updated_at 
-            FROM subcategory 
-            INNER JOIN category ON subcategory.category_id = category.id
-        ");
+        $stmt = $pdo->query("SELECT id, category_id, name, date_creation, updated_at FROM subcategory");
         $subcategories = $stmt->fetchAll();
         Response::send(200, "Subcategories fetched successfully", $subcategories);
     } catch (PDOException $e) {

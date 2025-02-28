@@ -15,17 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    const cartButton = document.getElementById('catalogButton');
-    if (cartButton) {
-        cartButton.addEventListener('click', showCart);
-    } else {
-        console.error("Кнопка 'Корзина' не найдена в DOM.");
-    }
-    // Загружаем корзину при загрузке страницы
-    const userId = getUserId();
-    if (userId) fetchCart(userId);
-});
 
 // Функция получения корзины с сервера
 function fetchCart(userId) {

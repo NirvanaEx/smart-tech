@@ -9,8 +9,32 @@ function getProducts() {
     $config = include __DIR__ . '/../config/path.php';
     $baseImagePath = $config['base_image_path'];
 
+    // Начальные условия (только не удалённые товары)
+    $conditions = ["products.data_status != 'deleted'"];
+    $params = [];
+
+    // Фильтрация по категории
+    if (isset($_GET['category']) && !empty($_GET['category'])) {
+        $conditions[] = "category.name = :category";
+        $params['category'] = $_GET['category'];
+    }
+
+    // Фильтрация по подкатегории
+    if (isset($_GET['subcategory']) && !empty($_GET['subcategory'])) {
+        $conditions[] = "subcategory.name = :subcategory";
+        $params['subcategory'] = $_GET['subcategory'];
+    }
+
+    // Поиск по названию и описанию
+    if (isset($_GET['search']) && !empty($_GET['search'])) {
+        $conditions[] = "(products.name LIKE :search OR products.description LIKE :search)";
+        $params['search'] = '%' . $_GET['search'] . '%';
+    }
+
+    $whereClause = implode(" AND ", $conditions);
+
     try {
-        $stmt = $pdo->prepare("
+        $query = "
             SELECT 
                 products.id, 
                 products.name AS product_name, 
@@ -29,10 +53,15 @@ function getProducts() {
             FROM products
             INNER JOIN subcategory ON products.subcategory_id = subcategory.id
             INNER JOIN category ON subcategory.category_id = category.id
-            WHERE products.data_status != 'deleted'
+            WHERE {$whereClause}
             ORDER BY products.id
-        ");
+        ";
+        $stmt = $pdo->prepare($query);
         $stmt->bindValue(':base_path', $baseImagePath, PDO::PARAM_STR);
+        // Привязываем остальные параметры
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":$key", $value, PDO::PARAM_STR);
+        }
         $stmt->execute();
 
         $products = $stmt->fetchAll();
@@ -41,6 +70,7 @@ function getProducts() {
         Response::send(500, "Failed to fetch products: " . $e->getMessage());
     }
 }
+
 
 // Создание нового товара
 function addProduct() {

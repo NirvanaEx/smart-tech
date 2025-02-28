@@ -122,8 +122,8 @@
             <button id="cartButton" class="btn btn-outline-light position-relative">
                 <i class="fas fa-shopping-cart"></i> Корзина
                 <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                      0
-                  </span>
+                    0
+                </span>
             </button>
             <!-- Поле поиска -->
             <input type="text" id="searchInput" class="form-control" placeholder="Напишите название товара...">
@@ -165,6 +165,7 @@
 
     <!-- Dynamic container: для фильтров (all.php, поиск, категория и т.д.) -->
     <div id="dynamic-content-container" style="display: none;">
+        <!-- Убрали динамический заголовок, чтобы не дублировать текст -->
         <h2 class="text-light" id="dynamic-content-title"></h2>
         <div id="dynamic-content-area">
             <div class="text-center text-light">Загрузка...</div>
@@ -235,7 +236,6 @@
                     }
                     document.body.appendChild(newScript);
                 });
-
             })
             .catch(error => {
                 contentArea.innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
@@ -330,7 +330,7 @@
                             currentCategory = parentNode.text;
                             currentSubcategory = node.text;
                         }
-                        // Не сбрасываем поисковый запрос, если он уже введён
+                        // Не сбрасываем поиск — если пользователь уже что-то ввёл, сохраняем
                         loadDynamicContent();
                         $("#categoryTreeContainer").hide();
                     }
@@ -364,15 +364,11 @@
             }
         });
 
-        // Обработчик изменения в поле поиска (автоматическое обновление)
+        // Обработчик изменения в поле поиска
+        // УБРАЛИ сброс категории, чтобы поиск мог работать вместе с категорией
         const searchInput = document.getElementById("searchInput");
         searchInput.addEventListener("input", function () {
             currentSearch = searchInput.value.trim();
-            if (currentSearch !== '') {
-                // При вводе поиска сбрасываем фильтры по категории
-                currentCategory = '';
-                currentSubcategory = '';
-            }
             loadDynamicContent();
         });
 
@@ -380,6 +376,7 @@
         const shopNowButton = document.getElementById("shopNowButton");
         shopNowButton.addEventListener("click", function (e) {
             e.preventDefault();
+            // Если нужно, сбрасываем поиск при нажатии "Shop Now"
             currentSearch = '';
             loadDynamicContent();
         });

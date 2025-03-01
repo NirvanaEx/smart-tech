@@ -98,6 +98,65 @@
         }
         /* Убираем стандартные иконки jsTree, чтобы использовать Font Awesome */
         .jstree-icon { display: none; }
+
+        /* Стили для избранного */
+        .fav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .fav-card {
+            background: #333;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .fav-card img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        .fav-btn {
+            cursor: pointer;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+        }
+        .fav-btn-add {
+            background: #007bff;
+            color: #fff;
+        }
+        .fav-btn-add:hover {
+            background: #0056b3;
+        }
+        .fav-quantity-controls {
+            display: flex;
+            align-items: center;
+        }
+        .fav-quantity-controls button {
+            padding: 5px;
+        }
+        .fav-quantity-value {
+            margin: 0 10px;
+        }
+        .fav-btn-favorite {
+            background: transparent;
+            border: 1px solid red;
+            color: red;
+            padding: 3px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .fav-cart-controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .fav-cart-controls {
+            flex: 1;
+            text-align: right;
+        }
     </style>
     <script>
         const BASE_URL = 'http://smart-tech/API/';
@@ -127,8 +186,8 @@
             </button>
             <!-- Поле поиска -->
             <input type="text" id="searchInput" class="form-control" placeholder="Напишите название товара...">
-            <a href="pages/favorites.php" class="btn btn-outline-light"><i class="fas fa-heart"></i> Избранное</a>
-
+            <!-- Ссылка на избранное теперь с data-page="favorites" -->
+            <a href="#" data-page="favorites" class="btn btn-outline-light"><i class="fas fa-heart"></i> Избранное</a>
             <button class="btn btn-outline-light"><i class="fas fa-exchange-alt"></i> Сравнить</button>
             <!-- Кнопка "Войти" -->
             <div id="auth-container">
@@ -142,7 +201,7 @@
 
 <!-- Main Container -->
 <main class="container my-4" id="main-container">
-    <!-- Default container: баннер + новинки -->
+    <!-- Default контейнер: баннер + новинки -->
     <div id="default-container">
         <!-- Banner -->
         <div class="banner bg-dark">
@@ -170,9 +229,9 @@
         </section>
     </div>
 
-    <!-- Dynamic container: для фильтров (all.php, поиск, категория и т.д.) -->
+    <!-- Dynamic контейнер: для фильтров, поиска, категорий, избранного и т.д. -->
     <div id="dynamic-content-container" style="display: none;">
-        <!-- Убрали динамический заголовок, чтобы не дублировать текст -->
+        <!-- Заголовок динамического контента -->
         <h2 class="text-light" id="dynamic-content-title"></h2>
         <div id="dynamic-content-area">
             <div class="text-center text-light">Загрузка...</div>
@@ -185,6 +244,7 @@
     <p>&copy; 2024 SMART.INC</p>
 </footer>
 
+<!-- Скрипты -->
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Font Awesome JS -->
@@ -198,13 +258,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
 <script type="module" src="js/part-index-auth.js"></script>
 <script src="js/part-index-cart.js"></script>
+
 <script>
     // Глобальные переменные для фильтров
     let currentCategory = '';
     let currentSubcategory = '';
     let currentSearch = '';
 
-    // Функция для загрузки динамического контента (например, all.php)
+    // Функция загрузки динамического контента (например, all.php)
     function loadDynamicContent() {
         let url = 'all.php?';
         if (currentCategory) {
@@ -243,11 +304,13 @@
                     }
                     document.body.appendChild(newScript);
                 });
-                // Добавляем вызов для синхронизации корзины и избранного
+                // Синхронизация корзины и избранного
                 const userId = getUserId();
                 if (userId) {
                     fetchCart(userId);
-                    fetchFavorites();
+                    if (typeof fetchFavorites === 'function') {
+                        fetchFavorites();
+                    }
                 }
             })
             .catch(error => {
@@ -255,7 +318,7 @@
             });
     }
 
-    // Функция для загрузки новых товаров (new.php) в default контейнер
+    // Функция загрузки новых товаров (new.php) в default контейнер
     function loadNewProducts() {
         const newArea = document.getElementById("new-products-area");
         newArea.innerHTML = '<div class="text-center text-light">Загрузка...</div>';
@@ -271,6 +334,53 @@
                 newArea.innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
             });
     }
+
+    // Функция загрузки страницы избранного (интегрированного в index.php)
+    function loadFavoritesContent() {
+        // Переключаем контейнеры
+        document.getElementById("default-container").style.display = "none";
+        document.getElementById("dynamic-content-container").style.display = "block";
+        // Вставляем HTML-разметку для избранного
+        document.getElementById("dynamic-content-area").innerHTML = `
+        <div class="fav-container my-4">
+            <div id="fav-favorites-container"></div>
+        </div>
+    `;
+        // Инициализируем скрипты для избранного
+        initFavorites();
+    }
+
+    // Обработчик кликов для элементов с data-page (сброс фильтров)
+    document.addEventListener('click', function (event) {
+        const target = event.target.closest('[data-page]');
+        if (target) {
+            event.preventDefault();
+            currentCategory = '';
+            currentSubcategory = '';
+            currentSearch = '';
+            // Если выбран favorites – вызываем нашу функцию загрузки избранного
+            const page = target.getAttribute('data-page');
+            if (page === 'favorites') {
+                loadFavoritesContent();
+                return;
+            }
+            document.getElementById("default-container").style.display = "none";
+            document.getElementById("dynamic-content-container").style.display = "block";
+            const title = target.getAttribute('data-title');
+            fetch(`pages/${page}.php`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Ошибка загрузки страницы");
+                    return response.text();
+                })
+                .then(html => {
+                    document.getElementById("dynamic-content-area").innerHTML = html;
+                    document.getElementById("dynamic-content-title").textContent = title || "Заголовок";
+                })
+                .catch(error => {
+                    document.getElementById("dynamic-content-area").innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
+                });
+        }
+    });
 
     document.addEventListener("DOMContentLoaded", function () {
         // Загружаем новинки по умолчанию
@@ -343,7 +453,6 @@
                             currentCategory = parentNode.text;
                             currentSubcategory = node.text;
                         }
-                        // Не сбрасываем поиск — если пользователь уже что-то ввёл, сохраняем
                         loadDynamicContent();
                         $("#categoryTreeContainer").hide();
                     }
@@ -377,8 +486,7 @@
             }
         });
 
-        // Обработчик изменения в поле поиска
-        // УБРАЛИ сброс категории, чтобы поиск мог работать вместе с категорией
+        // Обработчик изменения в поле поиска (не сбрасываем выбранную категорию)
         const searchInput = document.getElementById("searchInput");
         searchInput.addEventListener("input", function () {
             currentSearch = searchInput.value.trim();
@@ -389,41 +497,308 @@
         const shopNowButton = document.getElementById("shopNowButton");
         shopNowButton.addEventListener("click", function (e) {
             e.preventDefault();
-            // Если нужно, сбрасываем поиск при нажатии "Shop Now"
             currentSearch = '';
             loadDynamicContent();
         });
-
-        // Обработка кликов для элементов с data-page (сброс фильтров)
-        document.addEventListener('click', function (event) {
-            const target = event.target.closest('[data-page]');
-            if (target) {
-                event.preventDefault();
-                currentCategory = '';
-                currentSubcategory = '';
-                currentSearch = '';
-                document.getElementById("default-container").style.display = "none";
-                document.getElementById("dynamic-content-container").style.display = "block";
-                const page = target.getAttribute('data-page');
-                const title = target.getAttribute('data-title');
-                fetch(`pages/${page}.php`)
-                    .then(response => {
-                        if (!response.ok) throw new Error("Ошибка загрузки страницы");
-                        return response.text();
-                    })
-                    .then(html => {
-                        document.getElementById("dynamic-content-area").innerHTML = html;
-                        document.getElementById("dynamic-content-title").textContent = title || "Заголовок";
-                    })
-                    .catch(error => {
-                        document.getElementById("dynamic-content-area").innerHTML = `<div class="text-danger text-center">Ошибка: ${error.message}</div>`;
-                    });
-            }
-        });
     });
 </script>
-<script src="js/new-products.js"></script>
-<script src="js/favorites.js"></script>
 
+<!-- Скрипты для избранного (перенесены из pages/favorites.php) -->
+<script>
+    // Глобальные переменные для избранного
+    let favCart = [];
+    let favFavorites = [];
+
+    function favGetUserId() {
+        const user = JSON.parse(localStorage.getItem('user'));
+        return user ? user.user_id : null;
+    }
+
+
+    function favFetchCart(userId, callback) {
+        $.ajax({
+            url: BASE_URL + 'cart/' + userId,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                favCart = (response.status == 200) ? response.data : [];
+                if(callback) callback();
+            },
+            error: function() {
+                favCart = [];
+                if(callback) callback();
+            }
+        });
+    }
+
+    function favFetchFavorites(callback) {
+        const userId = favGetUserId();
+        if (!userId) {
+            Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
+            return;
+        }
+        $.ajax({
+            url: BASE_URL + 'favorite-products/' + userId,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if(response.status == 200) {
+                    favFavorites = response.data;
+                    if(callback) callback();
+                } else {
+                    Swal.fire('Ошибка', response.message, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.fire('Ошибка', `Не удалось получить избранное: ${xhr.status} - ${error}`, 'error');
+            }
+        });
+    }
+
+    // Функция переключения избранного: если товар в избранном, удаляет, иначе добавляет
+    function favToggleFavorite(productId) {
+        const exists = favFavorites.some(item => parseInt(item.product_id) === productId);
+        if (exists) {
+            favRemoveFromFavorites(productId);
+        } else {
+            favAddToFavorites({ id: productId });
+        }
+    }
+
+    // Функция добавления товара в избранное
+    function favAddToFavorites(product) {
+        const userId = favGetUserId();
+        if (!userId) {
+            Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
+            return;
+        }
+        $.ajax({
+            url: BASE_URL + 'favorite-products',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ user_id: userId, product_id: product.id }),
+            dataType: 'json',
+            success: function(response) {
+                if(response.status == 200 || response.status == 201) {
+                    Swal.fire('Товар добавлен в избранное', '', 'success');
+                    favFetchFavorites(updateFavoriteUI);
+                } else {
+                    Swal.fire('Ошибка', response.message, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.fire('Ошибка', `Не удалось добавить в избранное: ${xhr.status} - ${error}`, 'error');
+            }
+        });
+    }
+
+
+    function favLoadFavorites() {
+        const container = $('#fav-favorites-container');
+        container.empty();
+        if (!favFavorites.length) {
+            container.html('<p>Нет избранных товаров.</p>');
+            return;
+        }
+        let html = '<div class="row g-4">';
+        favFavorites.forEach(product => {
+            // Проверяем, есть ли товар в корзине
+            const cartItem = favCart.find(item => parseInt(item.product_id) === parseInt(product.product_id));
+            let cartControlsHtml = '';
+            if (cartItem) {
+                cartControlsHtml = `
+                    <div class="fav-cart-controls">
+                        <div class="fav-quantity-controls d-flex align-items-center">
+                            <button class="btn btn-outline-light fav-quantity-decrease" data-fav-cart-id="${cartItem.id}" data-product-id="${product.product_id}">-</button>
+                            <span class="fav-quantity-value mx-2" data-fav-cart-id="${cartItem.id}">${cartItem.quantity}</span>
+                            <button class="btn btn-outline-light fav-quantity-increase" data-fav-cart-id="${cartItem.id}" data-product-id="${product.product_id}">+</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                cartControlsHtml = `
+                    <div class="fav-cart-controls">
+                        <button class="btn btn-outline-light add-to-cart-btn w-100" data-product-id="${product.product_id}">
+                            <i class="fas fa-shopping-bag"></i> В корзину
+                        </button>
+                    </div>
+                `;
+            }
+            html += `
+                <div class="col-12 col-sm-6 col-md-6 col-lg-3">
+                    <div class="card bg-dark text-light h-100">
+                        <img src="${product.image_url}" class="card-img-top" alt="${product.product_name}">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">${product.product_name}</h5>
+                            <p class="card-text">${product.description}</p>
+                            <p class="card-text"><strong>Цена:</strong> ${product.price} сум</p>
+                            ${cartControlsHtml}
+                            <button class="btn btn-outline-light fav-btn-favorite mt-2" data-product-id="${product.product_id}">
+                                <i class="fas fa-heart"></i> Убрать из избранного
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.html(html);
+    }
+
+
+
+    function favAddToCart(product) {
+        const userId = favGetUserId();
+        if (!userId) {
+            Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
+            return;
+        }
+        $.ajax({
+            url: BASE_URL + 'cart',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ user_id: userId, product_id: product.id, quantity: product.quantity || 1 }),
+            dataType: 'json',
+            success: function(response) {
+                if(response.status == 200 || response.status == 201) {
+                    favFetchCart(userId, favLoadFavorites);
+                    syncCartWithUI();
+
+                } else {
+                    Swal.fire('Ошибка', response.message, 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Ошибка', 'Не удалось добавить товар в корзину', 'error');
+            }
+        });
+    }
+
+    function favUpdateCartQuantity(cartItemId, quantity) {
+        const userId = favGetUserId();
+        $.ajax({
+            url: BASE_URL + 'cart/' + cartItemId,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ quantity: quantity }),
+            dataType: 'json',
+            success: function(response) {
+                if(response.status === 200) {
+                    favFetchCart(userId, function(){
+                        favLoadFavorites();
+                        // Добавляем обновление счетчика в шапке
+                        updateCartCount();
+                        fetchCart(userId)
+                    });
+                } else {
+                    Swal.fire('Ошибка', response.message, 'error');
+                }
+            },
+            error: function() {
+                Swal.fire('Ошибка', 'Не удалось обновить количество товара', 'error');
+            }
+        });
+    }
+
+    function favRemoveFromCart(productId) {
+        const cartItem = favCart.find(item => parseInt(item.product_id) === productId);
+        if(cartItem) {
+            favUpdateCartQuantity(cartItem.id, 0);
+        }
+    }
+
+    function favRemoveFromFavorites(productId) {
+        const userId = favGetUserId();
+        if (!userId) {
+            Swal.fire('Ошибка', 'Пользователь не авторизован', 'error');
+            return;
+        }
+        const favRecord = favFavorites.find(item => parseInt(item.product_id) === productId);
+        if (!favRecord) {
+            Swal.fire('Ошибка', 'Товар не найден в избранном', 'error');
+            return;
+        }
+        $.ajax({
+            url: BASE_URL + 'favorite-products/' + favRecord.id,
+            method: 'DELETE',
+            dataType: 'json',
+            success: function(response) {
+                if(response.status == 200) {
+                    Swal.fire({ icon: "info", title: "Удалено из избранного", timer: 1500, showConfirmButton: false });
+                    favFetchFavorites(function(){
+                        favLoadFavorites();
+                        updateFavoriteUI();
+                    });
+                } else {
+                    Swal.fire('Ошибка', response.message, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.fire('Ошибка', `Не удалось удалить товар из избранного: ${xhr.status} - ${error}`, 'error');
+            }
+        });
+    }
+    function updateFavoriteUI() {
+        $('.btn-favorite-toggle').each(function(){
+            const productId = parseInt($(this).data('product-id'));
+            const exists = favFavorites.some(item => parseInt(item.product_id) === productId);
+            if (exists) {
+                $(this).find('i').removeClass('far').addClass('fas');
+            } else {
+                $(this).find('i').removeClass('fas').addClass('far');
+            }
+        });
+    }
+
+
+
+    function initFavorites() {
+        const userId = favGetUserId();
+        if (userId) {
+            favFetchCart(userId, function(){
+                favFetchFavorites(function(){
+                    favLoadFavorites();
+                    updateFavoriteUI();
+                });
+            });
+        } else {
+            $('#fav-favorites-container').html('<p>Пользователь не авторизован</p>');
+        }
+        // Делегирование событий для элементов избранного
+        $('#fav-favorites-container')
+            .off('click')
+            .on('click', '.add-to-cart-btn', function(){
+                const productId = parseInt($(this).data('product-id'));
+                favAddToCart({ id: productId });
+                fetchCart(userId);
+            })
+            .on('click', '.fav-quantity-increase', function(){
+                const cartId = $(this).data('fav-cart-id');
+                const qtyElem = $(`.fav-quantity-value[data-fav-cart-id="${cartId}"]`);
+                let qty = parseInt(qtyElem.text(), 10);
+                qty++;
+                qtyElem.text(qty);
+                favUpdateCartQuantity(cartId, qty);
+
+            })
+            .on('click', '.fav-quantity-decrease', function(){
+                const cartId = $(this).data('fav-cart-id');
+                const qtyElem = $(`.fav-quantity-value[data-fav-cart-id="${cartId}"]`);
+                let qty = parseInt(qtyElem.text(), 10);
+                if(qty > 1) {
+                    qty--;
+                    qtyElem.text(qty);
+                    favUpdateCartQuantity(cartId, qty);
+                } else {
+                    favRemoveFromCart(parseInt($(this).data('product-id')));
+                }
+            })
+            .on('click', '.fav-btn-favorite', function(){
+                const productId = parseInt($(this).data('product-id'));
+                favRemoveFromFavorites(productId);
+            });
+    }
+</script>
+<script src="js/new-products.js"></script>
 </body>
 </html>

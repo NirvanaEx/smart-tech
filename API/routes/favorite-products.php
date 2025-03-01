@@ -6,6 +6,8 @@ require_once __DIR__ . '/../config/db.php';
 function getFavoriteProducts($user_id)
 {
     $pdo = getDatabaseConnection();
+    // Подключаем конфигурацию с базовым путём к изображениям
+    $config = include(__DIR__ . '/../config/path.php');
 
     try {
         $stmt = $pdo->prepare("SELECT fp.id, fp.product_id, p.name AS product_name, p.description, p.image_path, pp.price
@@ -17,12 +19,15 @@ function getFavoriteProducts($user_id)
         $stmt->execute();
 
         $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Добавляем полный путь к изображению в отдельном поле
+        foreach ($favorites as &$favorite) {
+            $favorite['image_url'] = $config['base_image_path'] . $favorite['image_path'];
+        }
         Response::send(200, "Favorite products fetched successfully", $favorites);
     } catch (PDOException $e) {
         Response::send(500, "Error fetching favorite products: " . $e->getMessage());
     }
 }
-
 // Добавление продукта в избранное
 function addFavoriteProduct($data)
 {
